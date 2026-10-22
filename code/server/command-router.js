@@ -1,7 +1,8 @@
 const FILLER_WORDS = /^[嗯啊哦呢吧呀嘛哈是的对好行哦哦]+[。，！？、,.!?]*$/;
 
 function stripPunctuation(text) {
-  return text.replace(/[。，！？、,.!?\s]+$/g, "").trim();
+  // 句首句尾的标点都要去掉：讯飞大模型等引擎常在句首带「，」，不去掉的话「记一下…」这类前缀指令全都匹配不上
+  return text.replace(/^[。，！？、；：,.!?;:\s]+|[。，！？、,.!?\s]+$/g, "").trim();
 }
 
 const CN_NUM_MAP = { 零: 0, 一: 1, 二: 2, 两: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9, 十: 10 };

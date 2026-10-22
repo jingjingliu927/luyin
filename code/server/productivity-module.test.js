@@ -49,6 +49,15 @@ describe("语音命令与生产力工具模块", () => {
     assert.equal(parseCommand("打开仪表盘").intent, "dashboard");
   });
 
+  it("识别结果句首带标点时，前缀指令照样生效", () => {
+    // 讯飞大模型的分句结果常以「，」开头
+    assert.deepEqual(parseCommand("，记一下明天上午10点交周报").params, { content: "明天上午10点交周报" });
+    assert.equal(parseCommand("，创建任务整理会议纪要").params.title, "整理会议纪要");
+    assert.equal(parseCommand("。算一下128×3").params.expression, "128×3");
+    assert.equal(parseCommand("，提个bug登录页闪退").params.type, "bug");
+    assert.equal(parseCommand("，完成任务周报").intent, "task_done");
+  });
+
   it("TC-3.1-002 keeps filler words out and exposes unknown-command feedback", () => {
     const indexHtml = fs.readFileSync(indexHtmlPath, "utf-8");
     const indexServer = fs.readFileSync(indexServerPath, "utf-8");
