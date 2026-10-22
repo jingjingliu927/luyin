@@ -1,0 +1,2532 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>录音助手</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: transparent;
+      overflow: hidden;
+      -webkit-app-region: drag;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+    }
+
+    .wrap {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 4px;
+    }
+
+    /* ── 按钮 ── */
+    .float-controls {
+      position: relative;
+      width: 56px;
+      height: 56px;
+      flex-shrink: 0;
+    }
+
+    .panel-toggle-btn {
+      -webkit-app-region: no-drag;
+      position: absolute;
+      top: -3px;
+      right: -3px;
+      z-index: 2;
+      width: 16px;
+      height: 16px;
+      border: 1px solid rgba(255,255,255,0.22);
+      border-radius: 999px;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      background: rgba(15,23,42,0.72);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.26);
+      transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.15s;
+    }
+    .panel-toggle-btn.visible { display: flex; }
+    .panel-toggle-btn:hover:not(:disabled) {
+      background: rgba(79,70,229,0.92);
+      border-color: rgba(255,255,255,0.42);
+      transform: translateY(-1px);
+    }
+    .panel-toggle-btn:active:not(:disabled) { transform: translateY(0); }
+    .panel-toggle-btn:disabled {
+      cursor: not-allowed;
+      color: rgba(255,255,255,0.38);
+      background: rgba(15,23,42,0.38);
+      box-shadow: none;
+    }
+    .panel-toggle-btn.active {
+      background: rgba(59,130,246,0.95);
+      border-color: rgba(147,197,253,0.75);
+    }
+    .panel-toggle-btn svg {
+      width: 9px;
+      height: 9px;
+      fill: currentColor;
+      transition: transform 0.15s;
+    }
+    .panel-toggle-btn.active svg { transform: rotate(180deg); }
+
+    .icon-btn {
+      -webkit-app-region: no-drag;
+      width: 56px; height: 56px;
+      border-radius: 50%; border: none;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      background: #4f46e5;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.35);
+      transition: background 0.2s, transform 0.15s;
+      flex-shrink: 0;
+    }
+    .icon-btn:hover { transform: scale(1.06); }
+    .icon-btn:active { transform: scale(0.95); }
+    .icon-btn.recording { background: #dc3545; animation: pulse 1.5s ease-in-out infinite; }
+    .icon-btn.working   { background: #f0ad4e; cursor: wait; }
+    .icon-btn svg { width: 24px; height: 24px; fill: #fff; }
+
+    @keyframes pulse {
+      0%,100% { box-shadow: 0 0 0 0 rgba(220,53,69,0.5); }
+      50%     { box-shadow: 0 0 0 14px rgba(220,53,69,0); }
+    }
+
+    /* ── 音量条 ── */
+    .level-ring {
+      position: absolute;
+      inset: -3px;
+      border-radius: 50%;
+      border: 3px solid transparent;
+      transition: border-color 0.1s;
+      pointer-events: none;
+    }
+    .icon-btn.speaking .level-ring { border-color: #fbbf24; }
+
+    /* ── 实时面板 ── */
+    .panel {
+      -webkit-app-region: no-drag;
+      display: none;
+      flex-direction: column;
+      gap: 4px;
+      background: rgba(15,23,42,0.92);
+      border-radius: 14px;
+      padding: 10px 14px;
+      min-width: 240px;
+      max-width: 300px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+      animation: panelIn 0.2s ease;
+    }
+    .panel.show { display: flex; }
+    @keyframes panelIn {
+      from { opacity: 0; transform: translateX(-8px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    .panel-header {
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .panel-label {
+      font-size: 10px;
+      color: rgba(255,255,255,0.45);
+      display: flex; align-items: center; gap: 4px;
+    }
+    .panel-label .dot { width:6px;height:6px;border-radius:50%;background:#10b981; }
+    .panel-label .dot.cloud { background:#3b82f6; }
+
+    .dash-btn {
+      background: none; border: none; cursor: pointer;
+      padding: 2px 4px; border-radius: 4px;
+      color: rgba(255,255,255,0.35);
+      transition: color 0.15s, background 0.15s;
+      display: flex; align-items: center; gap: 3px;
+      font-size: 9px; font-family: inherit;
+    }
+    .dash-btn:hover { color: #fff; background: rgba(255,255,255,0.1); }
+    .dash-btn svg { width: 12px; height: 12px; fill: currentColor; }
+
+    /* ── 转写文本区域 ── */
+    .transcript-area {
+      max-height: 100px;
+      overflow-y: auto;
+      font-size: 13px;
+      line-height: 1.5;
+      word-break: break-all;
+    }
+    .transcript-area::-webkit-scrollbar { width: 3px; }
+    .transcript-area::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,0.2); border-radius: 2px;
+    }
+
+    .sentence { color: #fff; margin-bottom: 2px; }
+    .sentence.partial { color: rgba(255,255,255,0.5); font-style: italic; }
+    .sentence .speaker-tag {
+      display: inline-block;
+      margin-right: 6px;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      color: #93c5fd;
+      background: rgba(59,130,246,0.18);
+      vertical-align: middle;
+    }
+    .sentence .speaker-tag.pending {
+      color: #fcd34d;
+      background: rgba(251,191,36,0.18);
+    }
+    .sentence .speaker-text {
+      vertical-align: middle;
+    }
+    .sentence .live-speaker-label-btn {
+      -webkit-app-region: no-drag;
+      margin-right: 6px;
+      padding: 1px 6px;
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 999px;
+      background: rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.78);
+      cursor: pointer;
+      font-size: 10px;
+      vertical-align: middle;
+    }
+    .sentence .live-speaker-label-btn:hover {
+      color: #fff;
+      border-color: #93c5fd;
+      background: rgba(59,130,246,0.2);
+    }
+    .sentence .cmd-tag {
+      display: inline-block;
+      font-size: 10px;
+      font-style: normal;
+      padding: 1px 6px;
+      border-radius: 4px;
+      margin-left: 4px;
+      background: rgba(52,211,153,0.2);
+      color: #34d399;
+    }
+    .sentence .cmd-tag.err {
+      background: rgba(248,113,113,0.2);
+      color: #f87171;
+    }
+
+    .panel-status {
+      font-size: 12px;
+      color: rgba(255,255,255,0.4);
+      padding-top: 4px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .meeting-assistant {
+      display: none;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      padding-top: 6px;
+      gap: 5px;
+      flex-direction: column;
+    }
+    .meeting-assistant.show { display: flex; }
+    .meeting-assistant-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      color: rgba(255,255,255,0.72);
+    }
+    .meeting-assistant-status {
+      font-size: 10px;
+      color: rgba(255,255,255,0.42);
+    }
+    .meeting-assistant-list {
+      max-height: 74px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .meeting-assistant-item,
+    .meeting-assistant-summary {
+      border-radius: 8px;
+      padding: 5px 7px;
+      font-size: 12px;
+      line-height: 1.45;
+      color: rgba(255,255,255,0.86);
+      background: rgba(59,130,246,0.12);
+      border: 1px solid rgba(147,197,253,0.16);
+      word-break: break-word;
+    }
+    .meeting-assistant-summary {
+      display: none;
+      color: #d1fae5;
+      background: rgba(16,185,129,0.12);
+      border-color: rgba(110,231,183,0.18);
+    }
+    .meeting-assistant-summary.show { display: block; }
+    .meeting-assistant-list::-webkit-scrollbar { width: 3px; }
+    .meeting-assistant-list::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,0.2);
+      border-radius: 2px;
+    }
+
+    .panel-text {
+      font-size: 14px; color: #fff;
+      line-height: 1.5; max-height: 60px;
+      overflow-y: auto; word-break: break-all;
+    }
+    .panel-text.dim { color: rgba(255,255,255,0.5); }
+
+    .panel-result {
+      font-size: 12px; color: #34d399;
+      padding-top: 4px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      max-height: 40px; overflow-y: auto;
+    }
+    .panel-result.err { color: #f87171; }
+
+    .panel-text::-webkit-scrollbar, .panel-result::-webkit-scrollbar { width: 3px; }
+    .panel-text::-webkit-scrollbar-thumb, .panel-result::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,0.2); border-radius: 2px;
+    }
+
+    .alarm-toast {
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.8);
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+      border-radius: 16px; padding: 20px 24px; color: #fff;
+      box-shadow: 0 8px 32px rgba(99,102,241,0.5);
+      z-index: 9999; text-align: center; min-width: 200px;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.3s, transform 0.3s;
+    }
+    .alarm-toast.show {
+      opacity: 1; pointer-events: auto; transform: translate(-50%, -50%) scale(1);
+    }
+    .alarm-toast .alarm-icon { font-size: 32px; margin-bottom: 8px; }
+    .alarm-toast .alarm-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+    .alarm-toast .alarm-sub { font-size: 12px; opacity: 0.8; }
+    .alarm-toast .alarm-close {
+      margin-top: 12px; background: rgba(255,255,255,0.25); border: none;
+      color: #fff; padding: 6px 20px; border-radius: 8px; cursor: pointer;
+      font-size: 13px; transition: background 0.2s;
+    }
+    .alarm-toast .alarm-close:hover { background: rgba(255,255,255,0.4); }
+
+    @keyframes alarm-ring {
+      0%, 100% { transform: rotate(0deg); }
+      10%, 30%, 50% { transform: rotate(14deg); }
+      20%, 40% { transform: rotate(-14deg); }
+      60% { transform: rotate(0deg); }
+    }
+    .alarm-toast.show .alarm-icon { animation: alarm-ring 0.8s ease-in-out infinite; }
+
+    .speaker-label-modal-mask {
+      -webkit-app-region: no-drag;
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(15,23,42,0.42);
+      z-index: 10000;
+    }
+    .speaker-label-modal-mask.show { display: flex; }
+    .speaker-label-modal {
+      width: 260px;
+      border-radius: 14px;
+      padding: 16px;
+      background: #fff;
+      color: #0f172a;
+      box-shadow: 0 16px 44px rgba(0,0,0,0.28);
+    }
+    .speaker-label-modal h3 {
+      margin-bottom: 8px;
+      font-size: 16px;
+    }
+    .speaker-label-modal p {
+      margin-bottom: 10px;
+      color: #64748b;
+      font-size: 12px;
+    }
+    .speaker-label-modal input {
+      width: 100%;
+      padding: 9px 10px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      outline: none;
+      font-size: 14px;
+    }
+    .speaker-label-modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .speaker-label-modal-actions button {
+      border: none;
+      border-radius: 8px;
+      padding: 7px 12px;
+      cursor: pointer;
+    }
+    .speaker-label-modal-actions .primary {
+      background: #4f46e5;
+      color: #fff;
+    }
+
+    /* ══════════════════════════════════════
+       Web 首页（仅浏览器打开时启用）
+       同一个页面在 Electron 里是透明悬浮球，所有首页样式都限定在 body.web-mode / .web-home 下，
+       避免影响桌面悬浮窗。主色沿用控制面板的 #4f46e5。
+       ══════════════════════════════════════ */
+    .web-home { display: none; }
+
+    body.web-mode {
+      --wb-primary: #4f46e5;
+      --wb-primary-soft: #818cf8;
+      --wb-page: #f3f4f9;
+      --wb-tile: #ffffff;
+      --wb-line: rgba(15,23,42,0.08);
+      --wb-text: #0b1020;
+      --wb-text-2: #555f75;
+      --wb-text-3: #6b7489;
+      --wb-icon-bg: #eef0ff;
+      --wb-icon: #4f46e5;
+      --wb-shadow: 0 1px 2px rgba(15,23,42,0.04), 0 10px 30px -18px rgba(15,23,42,0.18);
+      --wb-shadow-hover: 0 1px 2px rgba(15,23,42,0.04), 0 30px 60px -28px rgba(79,70,229,0.45);
+      --wb-ease: cubic-bezier(0.22, 0.8, 0.22, 1);
+      background: var(--wb-page);
+      color: var(--wb-text);
+      overflow-x: hidden;
+      overflow-y: auto;
+      -webkit-app-region: no-drag;
+      -webkit-font-smoothing: antialiased;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC",
+        "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    }
+    @media (prefers-color-scheme: dark) {
+      body.web-mode {
+        --wb-page: #06070d;
+        --wb-tile: #0e1019;
+        --wb-line: rgba(255,255,255,0.07);
+        --wb-text: #eef0f7;
+        --wb-text-2: #a2aabd;
+        --wb-text-3: #6e7790;
+        --wb-icon-bg: rgba(129,140,248,0.12);
+        --wb-icon: #a5b4fc;
+        --wb-shadow: 0 0 0 1px rgba(255,255,255,0.02) inset;
+        --wb-shadow-hover: 0 30px 60px -28px rgba(99,102,241,0.55);
+      }
+    }
+    body.web-mode .web-home { display: block; }
+    body.web-mode ::selection { background: rgba(129,140,248,0.35); }
+
+    /* ── 首屏舞台 ── */
+    .wh-hero {
+      position: relative;
+      isolation: isolate;
+      display: flex;
+      flex-direction: column;
+      min-height: min(860px, calc(100vh - 24px));
+      margin: 12px;
+      border-radius: 28px;
+      overflow: hidden;
+      color: #fff;
+      background: #080a18;
+    }
+    @media (prefers-color-scheme: dark) {
+      .wh-hero { box-shadow: 0 0 0 1px rgba(255,255,255,0.06) inset; }
+    }
+    /* 极光：纯渐变 + transform 动画，不用 filter 模糊，省 GPU */
+    .wh-aurora {
+      position: absolute;
+      inset: -25%;
+      z-index: -2;
+      background:
+        radial-gradient(38% 32% at 28% 30%, rgba(99,102,241,0.55), transparent 70%),
+        radial-gradient(34% 30% at 76% 62%, rgba(139,92,246,0.42), transparent 70%),
+        radial-gradient(30% 26% at 52% 96%, rgba(56,189,248,0.16), transparent 70%);
+      animation: whAurora 26s ease-in-out infinite alternate;
+    }
+    @keyframes whAurora {
+      0%   { transform: translate3d(0, 0, 0) rotate(0deg) scale(1); }
+      50%  { transform: translate3d(3%, -2%, 0) rotate(8deg) scale(1.06); }
+      100% { transform: translate3d(-3%, 2%, 0) rotate(-6deg) scale(1); }
+    }
+    /* 颗粒 + 点阵，中心清晰、四周淡出 */
+    .wh-hero::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      background-image:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+        radial-gradient(rgba(255,255,255,0.08) 1px, transparent 1.2px);
+      background-size: 160px 160px, 26px 26px;
+      -webkit-mask-image: radial-gradient(ellipse 70% 65% at 50% 45%, #000 20%, transparent 80%);
+      mask-image: radial-gradient(ellipse 70% 65% at 50% 45%, #000 20%, transparent 80%);
+    }
+
+    .wh-nav {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 22px 28px;
+    }
+    .wh-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    .wh-brand-mark {
+      width: 30px;
+      height: 30px;
+      border-radius: 9px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(140deg, #8b8cf8, #4f46e5 60%, #3b2fc9);
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.18) inset, 0 8px 20px -6px rgba(99,102,241,0.7);
+    }
+    .wh-brand-mark svg { width: 16px; height: 16px; fill: #fff; }
+    .wh-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px 8px 16px;
+      border-radius: 999px;
+      font-size: 13px;
+      color: rgba(255,255,255,0.88);
+      text-decoration: none;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(12px);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .wh-pill:hover { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.24); }
+    .wh-nav-actions { display: flex; align-items: center; gap: 8px; }
+    .wh-pill--icon { position: relative; padding: 8px 14px; }
+    .wh-pill--icon svg { width: 15px; height: 15px; }
+    .wh-pill--icon:hover svg { transform: rotate(60deg); }
+    .wh-pill-dot {
+      position: absolute;
+      top: 3px;
+      right: 3px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #fbbf24;
+      box-shadow: 0 0 0 2px #080a18;
+    }
+    .wh-pill-dot[hidden] { display: none; }
+    .wh-pill svg { width: 14px; height: 14px; transition: transform 0.4s var(--wb-ease); }
+    .wh-pill:hover svg { transform: translate(2px, -2px); }
+    .wh-pill:focus-visible, .wh-scroll:focus-visible { outline: 2px solid #c7d2fe; outline-offset: 3px; }
+
+    .wh-stage {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 0 24px 96px;
+    }
+    /* 录音后标题区收起，进入专注模式；用 grid 0fr/1fr 做高度过渡 */
+    .wh-collapse {
+      display: grid;
+      grid-template-rows: 1fr;
+      transition: grid-template-rows 0.7s var(--wb-ease), opacity 0.45s ease;
+    }
+    .wh-collapse > div { min-height: 0; overflow: hidden; }
+    body.wh-session .wh-collapse { grid-template-rows: 0fr; opacity: 0; }
+
+    .wh-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 22px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 12.5px;
+      letter-spacing: 0.08em;
+      color: rgba(224,231,255,0.82);
+      background: rgba(129,140,248,0.10);
+      border: 1px solid rgba(129,140,248,0.22);
+    }
+    .wh-eyebrow-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #34d399;
+      box-shadow: 0 0 0 3px rgba(52,211,153,0.18);
+    }
+    .wh-title {
+      font-size: clamp(38px, 6vw, 80px);
+      line-height: 1.06;
+      letter-spacing: -0.035em;
+      font-weight: 700;
+    }
+    .wh-title em {
+      font-style: normal;
+      background: linear-gradient(92deg, #c7d2fe 0%, #a78bfa 45%, #f0abfc 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .wh-sub {
+      text-wrap: pretty;
+      max-width: 520px;
+      margin: 20px auto 0;
+      font-size: 16px;
+      line-height: 1.75;
+      color: rgba(226,232,240,0.66);
+    }
+
+    /* ── 录音按钮：原悬浮球结构整体挪进来，canvas 声波画在按钮背后 ── */
+    .wh-orb { margin-top: 64px; }
+    body.wh-session .wh-orb { margin-top: 0; }
+    body.web-mode .wrap {
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+      padding: 0;
+    }
+    body.web-mode .float-controls { width: 104px; height: 104px; transition: transform 0.5s var(--wb-ease); }
+    .wh-orb-canvas {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 440px;
+      height: 440px;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    body.web-mode .icon-btn {
+      position: relative;
+      z-index: 1;
+      width: 104px;
+      height: 104px;
+      overflow: hidden;
+      background: radial-gradient(120% 120% at 30% 18%, #9a9bfb 0%, #5b55ee 42%, #3f33c9 100%);
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,0.2) inset,
+        0 -10px 24px rgba(0,0,0,0.22) inset,
+        0 24px 60px -12px rgba(99,102,241,0.85);
+      transition: transform 0.5s var(--wb-ease), box-shadow 0.5s var(--wb-ease);
+    }
+    /* 红色层叠在上面做淡入淡出，渐变背景本身不能过渡 */
+    body.web-mode .icon-btn::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: radial-gradient(120% 120% at 30% 18%, #fda4af 0%, #f43f5e 45%, #be123c 100%);
+      opacity: 0;
+      transition: opacity 0.45s ease;
+    }
+    body.web-mode .icon-btn svg { position: relative; width: 36px; height: 36px; }
+    body.web-mode .icon-btn:hover { transform: scale(1.045); }
+    body.web-mode .icon-btn:active { transform: scale(0.96); }
+    body.web-mode .icon-btn:focus-visible { outline: 2px solid #c7d2fe; outline-offset: 8px; }
+    body.web-mode .icon-btn.recording {
+      background: radial-gradient(120% 120% at 30% 18%, #9a9bfb 0%, #5b55ee 42%, #3f33c9 100%);
+      animation: none;
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,0.22) inset,
+        0 -10px 24px rgba(0,0,0,0.2) inset,
+        0 24px 60px -12px rgba(244,63,94,0.8);
+    }
+    body.web-mode .icon-btn.recording::before { opacity: 1; }
+    body.web-mode .icon-btn.working { background: #d97706; }
+    body.web-mode .level-ring,
+    body.web-mode .panel-toggle-btn { display: none !important; }
+
+    .wh-hint {
+      margin-top: 52px;
+      min-height: 22px;
+      font-size: 14px;
+      color: rgba(226,232,240,0.72);
+      font-variant-numeric: tabular-nums;
+    }
+    .wh-hint a { color: #c7d2fe; text-decoration: none; border-bottom: 1px solid rgba(199,210,254,0.4); }
+    .wh-hint a:hover { color: #fff; border-color: #fff; }
+    .wh-hint-warn { color: #fcd34d; }
+    .wh-hint-warn::before {
+      content: "";
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      margin-right: 8px;
+      border-radius: 50%;
+      background: #fbbf24;
+      vertical-align: 1px;
+    }
+    .wh-hint kbd {
+      display: inline-block;
+      margin: 0 3px;
+      padding: 1px 7px;
+      border-radius: 6px;
+      font: 500 12px/18px -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+      color: rgba(255,255,255,0.86);
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.16);
+      border-bottom-width: 2px;
+    }
+    .wh-rec-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      margin-right: 8px;
+      border-radius: 50%;
+      background: #fb7185;
+      vertical-align: 1px;
+      animation: whBlink 1.2s ease-in-out infinite;
+    }
+    @keyframes whBlink { 50% { opacity: 0.25; } }
+    @media (hover: none) { .wh-kbd-tip { display: none; } }
+
+    .wh-try {
+      margin-top: 12px;
+      font-size: 15px;
+      color: rgba(226,232,240,0.5);
+    }
+    .wh-try-label { margin-right: 6px; }
+    .wh-try-text { color: rgba(255,255,255,0.92); font-weight: 500; }
+    .wh-try-text span { display: inline-block; white-space: pre; }
+    .wh-try-text.is-in span {
+      animation: whChar 0.6s var(--wb-ease) both;
+      animation-delay: calc(var(--i) * 26ms);
+    }
+    @keyframes whChar {
+      from { opacity: 0; transform: translateY(0.45em); filter: blur(5px); }
+      to   { opacity: 1; transform: none; filter: blur(0); }
+    }
+
+    /* 实时转写面板：改成字幕卡片 */
+    body.web-mode .panel {
+      width: min(680px, calc(100vw - 72px));
+      min-width: 0;
+      max-width: none;
+      margin-top: 76px;
+      padding: 16px 20px 14px;
+      gap: 8px;
+      text-align: left;
+      border-radius: 20px;
+      background: rgba(255,255,255,0.045);
+      border: 1px solid rgba(255,255,255,0.09);
+      box-shadow: 0 40px 80px -40px rgba(0,0,0,0.7);
+      animation: whPanelIn 0.6s var(--wb-ease);
+    }
+    @keyframes whPanelIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: none; }
+    }
+    body.web-mode .panel-label { font-size: 12px; color: rgba(255,255,255,0.5); }
+    body.web-mode .dash-btn { font-size: 12px; color: rgba(255,255,255,0.45); }
+    body.web-mode .dash-btn svg { width: 13px; height: 13px; }
+    body.web-mode .transcript-area { max-height: 210px; font-size: 18px; line-height: 1.75; }
+    body.web-mode .transcript-area::-webkit-scrollbar { width: 4px; }
+    body.web-mode .sentence { margin-bottom: 6px; color: rgba(255,255,255,0.94); }
+    body.web-mode .sentence.partial { color: rgba(255,255,255,0.5); }
+    body.web-mode .sentence .speaker-tag {
+      font-size: 11px;
+      font-style: normal;
+      padding: 2px 8px;
+      border-radius: 6px;
+      color: #c7d2fe;
+      background: rgba(129,140,248,0.18);
+    }
+    body.web-mode .sentence .speaker-tag.pending { color: rgba(255,255,255,0.55); background: rgba(255,255,255,0.08); }
+    body.web-mode .panel-status { font-size: 11px; color: rgba(255,255,255,0.32); padding-top: 8px; }
+    body.web-mode .panel-text { font-size: 18px; max-height: 120px; }
+    body.web-mode:not(.wh-recording) #currentSentence { display: none; }
+    body.web-mode .meeting-assistant-list { max-height: 140px; }
+
+    .wh-scroll {
+      position: absolute;
+      left: 50%;
+      bottom: 26px;
+      transform: translateX(-50%);
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      color: rgba(226,232,240,0.5);
+      text-decoration: none;
+      transition: color 0.3s, opacity 0.4s;
+    }
+    .wh-scroll:hover { color: #fff; }
+    .wh-scroll svg { width: 16px; height: 16px; animation: whNudge 2.4s ease-in-out infinite; }
+    @keyframes whNudge { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(4px); } }
+    body.wh-session .wh-scroll { opacity: 0; pointer-events: none; }
+
+    /* ── 功能区 ── */
+    .wh-main {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 112px 28px 24px;
+    }
+    .wh-section + .wh-section { margin-top: 104px; }
+    .wh-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 400px);
+      align-items: end;
+      gap: 24px 48px;
+      margin-bottom: 32px;
+    }
+    .wh-index {
+      display: block;
+      margin-bottom: 14px;
+      font: 600 12px/1 ui-monospace, "SF Mono", Menlo, monospace;
+      letter-spacing: 0.14em;
+      color: var(--wb-primary);
+    }
+    .wh-index::after {
+      content: "";
+      display: inline-block;
+      width: 32px;
+      height: 1px;
+      margin-left: 12px;
+      vertical-align: middle;
+      background: currentColor;
+      opacity: 0.45;
+    }
+    @media (prefers-color-scheme: dark) { .wh-index { color: var(--wb-primary-soft); } }
+    .wh-h2 {
+      font-size: clamp(28px, 3.2vw, 40px);
+      line-height: 1.12;
+      letter-spacing: -0.03em;
+      font-weight: 700;
+    }
+    .wh-lead {
+      text-wrap: pretty;
+      font-size: 15px;
+      line-height: 1.75;
+      color: var(--wb-text-2);
+    }
+
+    .wh-bento {
+      display: grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      gap: 16px;
+    }
+    .wh-tile {
+      grid-column: span 3;
+      position: relative;
+      isolation: isolate;
+      display: flex;
+      flex-direction: column;
+      min-height: 210px;
+      padding: 24px;
+      border-radius: 22px;
+      color: inherit;
+      text-decoration: none;
+      background: var(--wb-tile);
+      border: 1px solid var(--wb-line);
+      box-shadow: var(--wb-shadow);
+      overflow: hidden;
+      transition: transform 0.6s var(--wb-ease), box-shadow 0.6s var(--wb-ease), border-color 0.4s;
+    }
+    .wh-tile--half { grid-column: span 5; }
+    /* 跟随鼠标的光斑 */
+    .wh-tile::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      background: radial-gradient(420px circle at var(--mx, 50%) var(--my, 0%), rgba(99,102,241,0.12), transparent 60%);
+      opacity: 0;
+      transition: opacity 0.4s;
+    }
+    .wh-tile:hover {
+      transform: translateY(-4px);
+      border-color: rgba(99,102,241,0.32);
+      box-shadow: var(--wb-shadow-hover);
+    }
+    .wh-tile:hover::before { opacity: 1; }
+    .wh-tile:focus-visible { outline: 2px solid var(--wb-primary); outline-offset: 3px; }
+    .wh-tile-icon {
+      width: 46px;
+      height: 46px;
+      border-radius: 13px;
+      display: grid;
+      place-items: center;
+      color: var(--wb-icon);
+      background: var(--wb-icon-bg);
+      transition: transform 0.6s var(--wb-ease);
+    }
+    .wh-tile-icon svg { width: 22px; height: 22px; }
+    .wh-tile:hover .wh-tile-icon { transform: rotate(-6deg) scale(1.06); }
+    .wh-tile-arrow {
+      position: absolute;
+      top: 24px;
+      right: 24px;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      color: var(--wb-text-3);
+      border: 1px solid var(--wb-line);
+      transition: background 0.4s, border-color 0.4s, color 0.4s, transform 0.6s var(--wb-ease);
+      transform: rotate(45deg);
+    }
+    .wh-tile-arrow svg { width: 15px; height: 15px; }
+    .wh-tile:hover .wh-tile-arrow {
+      transform: none;
+      color: #fff;
+      background: var(--wb-primary);
+      border-color: var(--wb-primary);
+    }
+    .wh-tile-body { display: block; margin-top: 28px; }
+    .wh-step {
+      display: block;
+      margin-bottom: 8px;
+      font: 600 11px/1 ui-monospace, "SF Mono", Menlo, monospace;
+      letter-spacing: 0.14em;
+      color: var(--wb-text-3);
+    }
+    .wh-tile-name {
+      display: block;
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    .wh-tile-desc {
+      text-wrap: pretty;
+      display: block;
+      margin-top: 6px;
+      font-size: 13.5px;
+      line-height: 1.6;
+      color: var(--wb-text-2);
+    }
+    .wh-tile-stat {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: auto;
+      padding-top: 20px;
+      font-size: 12.5px;
+      color: var(--wb-text-2);
+      font-variant-numeric: tabular-nums;
+    }
+    .wh-tile-stat[hidden] { display: none; }
+    .wh-tile-stat b { font-weight: 600; color: var(--wb-text); margin-right: 3px; }
+    .wh-dot {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      margin-right: 7px;
+      border-radius: 50%;
+      vertical-align: 1px;
+      background: var(--wb-text-3);
+    }
+    .wh-dot.on { background: #10b981; box-shadow: 0 0 0 3px rgba(16,185,129,0.16); }
+    .wh-progress {
+      flex: 1;
+      max-width: 120px;
+      height: 4px;
+      border-radius: 99px;
+      overflow: hidden;
+      background: var(--wb-line);
+    }
+    .wh-progress i {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #818cf8, #4f46e5);
+      transition: width 1s var(--wb-ease);
+    }
+
+    /* 主卡：语音录入 */
+    .wh-tile--feature {
+      grid-column: span 7;
+      grid-row: span 2;
+      min-height: 440px;
+      color: #fff;
+      border-color: transparent;
+      background:
+        radial-gradient(80% 70% at 100% 0%, rgba(139,92,246,0.35), transparent 60%),
+        linear-gradient(160deg, #1c1f45 0%, #0d1024 100%);
+    }
+    .wh-tile--feature::before {
+      background: radial-gradient(480px circle at var(--mx, 50%) var(--my, 0%), rgba(165,180,252,0.16), transparent 60%);
+    }
+    .wh-tile--feature:hover { border-color: rgba(165,180,252,0.3); }
+    .wh-tile--feature .wh-tile-icon { color: #fff; background: rgba(255,255,255,0.1); }
+    .wh-tile--feature .wh-tile-arrow { color: rgba(255,255,255,0.7); border-color: rgba(255,255,255,0.18); }
+    .wh-tile--feature .wh-tile-desc { color: rgba(226,232,240,0.66); }
+    .wh-tile--feature .wh-tile-body { margin-top: auto; padding-top: 28px; }
+    .wh-feature-stat { display: block; margin-top: 36px; }
+    .wh-feature-stat[hidden] { display: none; }
+    .wh-feature-num {
+      display: block;
+      font-size: clamp(64px, 7vw, 104px);
+      line-height: 1;
+      font-weight: 700;
+      letter-spacing: -0.05em;
+      font-variant-numeric: tabular-nums;
+      background: linear-gradient(180deg, #fff 30%, rgba(199,210,254,0.55));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .wh-feature-unit { display: block; margin-top: 10px; font-size: 14px; color: rgba(226,232,240,0.62); }
+    .wh-latest {
+      display: block;
+      margin-top: 28px;
+      padding: 14px 16px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .wh-latest[hidden] { display: none; }
+    .wh-latest-meta {
+      display: block;
+      font-size: 12px;
+      color: rgba(199,210,254,0.7);
+      font-variant-numeric: tabular-nums;
+    }
+    .wh-latest-text {
+      display: -webkit-box;
+      margin-top: 6px;
+      font-size: 14px;
+      line-height: 1.65;
+      color: rgba(255,255,255,0.86);
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .wh-wave {
+      position: absolute;
+      top: 104px;
+      right: 24px;
+      left: 46%;
+      height: 96px;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      pointer-events: none;
+      -webkit-mask-image: linear-gradient(90deg, transparent, #000 25%);
+      mask-image: linear-gradient(90deg, transparent, #000 25%);
+    }
+    .wh-wave i {
+      flex: 1;
+      height: var(--h);
+      border-radius: 99px;
+      background: linear-gradient(180deg, #c4b5fd, #6366f1);
+      opacity: 0.75;
+      transform-origin: center;
+      transition: transform 0.6s var(--wb-ease);
+    }
+    .wh-tile--feature:hover .wh-wave i { animation: whWave 1.1s ease-in-out infinite alternate; animation-delay: calc(var(--i) * -70ms); }
+    @keyframes whWave { from { transform: scaleY(0.35); } to { transform: scaleY(1); } }
+
+    .wh-footer {
+      max-width: 1180px;
+      margin: 120px auto 0;
+      padding: 28px 28px 48px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 8px 24px;
+      font-size: 13px;
+      color: var(--wb-text-3);
+      border-top: 1px solid var(--wb-line);
+    }
+
+    /* 进场：JS 准备好后才隐藏，避免脚本失败时整页空白；用 backwards 填充，动画结束后不压住 hover 的 transform */
+    body.wh-reveal [data-reveal]:not(.is-in) { opacity: 0; }
+    body.wh-reveal [data-reveal].is-in { animation: whRise 0.9s var(--wb-ease) backwards; animation-delay: var(--d, 0ms); }
+    @keyframes whRise {
+      from { opacity: 0; transform: translateY(22px); }
+      to   { opacity: 1; transform: none; }
+    }
+
+    @media (max-width: 1023px) {
+      .wh-tile, .wh-tile--half { grid-column: span 6; }
+      .wh-tile--feature { grid-column: span 12; grid-row: auto; min-height: 380px; }
+      .wh-head { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 640px) {
+      .wh-hero { margin: 8px; border-radius: 22px; min-height: calc(100svh - 16px); }
+      .wh-nav { padding: 16px 16px; }
+      .wh-pill--icon span { display: none; }
+      .wh-stage { padding: 0 16px 88px; }
+      .wh-sub { font-size: 15px; }
+      .wh-orb-canvas { width: 340px; height: 340px; }
+      body.web-mode .float-controls, body.web-mode .icon-btn { width: 92px; height: 92px; }
+      body.web-mode .panel { width: calc(100vw - 48px); }
+      body.web-mode .transcript-area { font-size: 16px; }
+      .wh-main { padding: 80px 16px 16px; }
+      .wh-section + .wh-section { margin-top: 72px; }
+      .wh-bento { gap: 12px; }
+      .wh-tile, .wh-tile--half, .wh-tile--feature { grid-column: span 12; min-height: 0; padding: 20px; }
+      .wh-tile--feature { min-height: 0; }
+      .wh-tile-body { margin-top: 22px; }
+      .wh-tile-arrow { top: 20px; right: 20px; }
+      .wh-wave { top: 92px; left: 42%; height: 64px; }
+      .wh-feature-num { font-size: 60px; }
+      .wh-title { font-size: 40px; }
+      .wh-footer { margin-top: 80px; padding: 24px 16px 40px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .wh-aurora, .wh-scroll svg, .wh-rec-dot { animation: none; }
+      body.wh-reveal [data-reveal]:not(.is-in) { opacity: 1; }
+      body.wh-reveal [data-reveal].is-in, .wh-try-text.is-in span, body.web-mode .panel { animation: none; }
+      .wh-tile:hover .wh-wave i { animation: none; }
+      .wh-collapse, .wh-tile, .wh-tile-icon, .wh-tile-arrow { transition-duration: 0.01s; }
+    }
+  </style>
+</head>
+<body>
+<script>
+  // preload 会在页面脚本之前注入 electronAPI；没有它就是纯浏览器打开，切到 Web 首页布局。
+  // 放在 body 最前面同步执行，避免先闪一下悬浮球再变成首页。
+  if (!window.electronAPI) document.body.classList.add("web-mode", "wh-reveal");
+</script>
+
+<!-- Web 首页：Electron 悬浮窗里整块隐藏，只有浏览器打开时显示 -->
+<div class="web-home" id="webHome">
+  <section class="wh-hero" id="whHero">
+    <div class="wh-aurora" aria-hidden="true"></div>
+    <nav class="wh-nav">
+      <div class="wh-brand">
+        <span class="wh-brand-mark"><svg viewBox="0 0 24 24"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm-1-9a1 1 0 1 1 2 0v6a1 1 0 1 1-2 0V5zm-4 6a5 5 0 0 0 10 0h2a7 7 0 0 1-6 6.93V21h-2v-3.07A7 7 0 0 1 5 11h2z"/></svg></span>
+        录音助手
+      </div>
+      <div class="wh-nav-actions">
+      <a class="wh-pill wh-pill--icon" href="/dashboard#settings" target="luyin-dashboard" aria-label="设置">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span>设置</span>
+        <i class="wh-pill-dot" id="whSettingsDot" title="当前识别引擎还没配置完整" hidden></i>
+      </a>
+      <a class="wh-pill" href="/dashboard" target="luyin-dashboard">
+        控制面板
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></svg>
+      </a>
+      </div>
+    </nav>
+
+    <div class="wh-stage">
+      <div class="wh-collapse"><div>
+        <p class="wh-eyebrow" data-reveal style="--d:0ms"><span class="wh-eyebrow-dot"></span>语音驱动的桌面助手</p>
+        <h1 class="wh-title" data-reveal style="--d:90ms">开口说<br><em>剩下的交给它</em></h1>
+        <p class="wh-sub" data-reveal style="--d:180ms">实时转写、自动区分说话人，一句话就能记笔记、建任务、设提醒。</p>
+      </div></div>
+
+      <!-- 录音按钮和实时面板由脚本从下方 .wrap 挪进来，复用同一套录音逻辑 -->
+      <div class="wh-orb" id="webMicSlot" data-reveal style="--d:260ms"></div>
+      <div class="wh-hint" id="webMicHint" aria-live="polite" data-reveal style="--d:340ms"></div>
+
+      <div class="wh-collapse"><div>
+        <p class="wh-try" data-reveal style="--d:420ms"><span class="wh-try-label">试试说</span><span class="wh-try-text" id="webTry"></span></p>
+      </div></div>
+    </div>
+
+    <a class="wh-scroll" href="#whFeatures">
+      全部功能
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+    </a>
+  </section>
+
+  <main class="wh-main" id="whFeatures">
+    <section class="wh-section">
+      <header class="wh-head">
+        <div data-reveal><span class="wh-index">01</span><h2 class="wh-h2">录音与会议</h2></div>
+        <p class="wh-lead" data-reveal style="--d:80ms">把声音变成能回看、能引用的文字；开会时，会议助手逐句跟进并在结束后给出总结。</p>
+      </header>
+      <div class="wh-bento">
+        <a class="wh-tile wh-tile--feature" href="/dashboard#recordings" target="luyin-dashboard" data-reveal>
+          <span class="wh-tile-icon"><svg viewBox="0 0 24 24"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm-1-9a1 1 0 1 1 2 0v6a1 1 0 1 1-2 0V5zm-4 6a5 5 0 0 0 10 0h2a7 7 0 0 1-6 6.93V21h-2v-3.07A7 7 0 0 1 5 11h2z" fill="currentColor"/></svg></span>
+          <span class="wh-tile-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></svg></span>
+          <span class="wh-wave" id="whWave" aria-hidden="true"></span>
+          <span class="wh-feature-stat" data-stat-wrap="recordings" hidden>
+            <span class="wh-feature-num" data-stat="recordings">0</span>
+            <span class="wh-feature-unit">段录音与转写</span>
+          </span>
+          <span class="wh-latest" id="whLatest" hidden>
+            <span class="wh-latest-meta" id="whLatestMeta"></span>
+            <span class="wh-latest-text" id="whLatestText"></span>
+          </span>
+          <span class="wh-tile-body">
+            <span class="wh-tile-name">语音录入</span>
+            <span class="wh-tile-desc">全部录音和转写都在这里，开完会可以一键复制全文</span>
+          </span>
+        </a>
+        <a class="wh-tile wh-tile--half" href="/dashboard#meeting-assistant" target="luyin-dashboard" data-reveal style="--d:80ms">
+          <span class="wh-tile-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/><path d="M8 9h8"/><path d="M8 13h5"/></svg></span>
+          <span class="wh-tile-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></svg></span>
+          <span class="wh-tile-body">
+            <span class="wh-tile-name">会议助手</span>
+            <span class="wh-tile-desc">边开会边逐句反馈，结束后自动出总结</span>
+          </span>
+          <span class="wh-tile-stat" data-stat="meeting" hidden></span>
+        </a>
+        <a class="wh-tile wh-tile--half" href="/dashboard#speakers" target="luyin-dashboard" data-reveal style="--d:160ms">
+          <span class="wh-tile-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></span>
+          <span class="wh-tile-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></svg></span>
+          <span class="wh-tile-body">
+            <span class="wh-tile-name">人物声纹</span>
+            <span class="wh-tile-desc">注册声音样本，转写时自动标出是谁在说</span>
+          </span>
+          <span class="wh-tile-stat" data-stat="speakers" hidden></span>
+        </a>
+      </div>
+    </section>
+
+    <section class="wh-section">
+      <header class="wh-head">
+        <div data-reveal><span class="wh-index">02</span><h2 class="wh-h2">日常效率</h2></div>
+        <p class="wh-lead" data-reveal style="--d:80ms">顺手的小事说一句就办了，也可以随时在这里手动整理。</p>
+      </header>
+      <div class="wh-bento">
+        <a class="wh-tile" href="/dashboard#notes" target="luyin-dashboard" data-reveal>
+          <span class="wh-tile-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span>
+          <span class="wh-tile-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></svg></span>
+          <span class="wh-tile-body">
+            <span class="wh-tile-name">记事本</span>
+            <span class="wh-tile-desc">说「记一下…」就存成一条笔记</span>
+          </span>
+          <span class="wh-tile-stat" data-stat="notes" hidden></span>
+        </a>
+        <a class="wh-tile" href="/dashboard#tasks" target="luyin-dashboard" data-reveal style="--d:70ms">
+          <span class="wh-tile-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></span>
+          <span class="wh-tile-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></svg></span>
+          <span class="wh-tile-body">
+            <span class="wh-tile-name">工作任务</span>
+            <span class="wh-tile-desc">说「创建任务…」，一路跟进到完成</span>
+          </span>
+          <span class="wh-tile-stat" data-stat="tasks" hidden></span>
+        </a>
+        <a class="wh-tile" href="/dashboard#alarms" target="luyin-dashboard" data-reveal style="--d:140ms">
+          <span class="wh-tile-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg></span>
+          <span class="wh-tile-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></svg></span>
+          <span class="wh-tile-body">
+            <span class="wh-tile-name">闹钟提醒</span>
+            <span class="wh-tile-desc">说「5 分钟后提醒我…」，到点就提醒</span>
+          </span>
+          <span class="wh-tile-stat" data-stat="alarms" hidden></span>
+        </a>
+        <a class="wh-tile" href="/dashboard#calculator" target="luyin-dashboard" data-reveal style="--d:210ms">
+          <span class="wh-tile-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="8" y2="10.01"/><line x1="12" y1="10" x2="12" y2="10.01"/><line x1="16" y1="10" x2="16" y2="10.01"/><line x1="8" y1="14" x2="8" y2="14.01"/><line x1="12" y1="14" x2="12" y2="14.01"/><line x1="16" y1="14" x2="16" y2="14.01"/><line x1="8" y1="18" x2="8" y2="18.01"/><line x1="12" y1="18" x2="16" y2="18"/></svg></span>
+          <span class="wh-tile-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></svg></span>
+          <span class="wh-tile-body">
+            <span class="wh-tile-name">计算器</span>
+            <span class="wh-tile-desc">说「算一下…」，也能手动计算</span>
+          </span>
+          <span class="wh-tile-stat" data-stat="calc" hidden></span>
+        </a>
+      </div>
+    </section>
+
+    <section class="wh-section">
+      <header class="wh-head">
+        <div data-reveal><span class="wh-index">03</span><h2 class="wh-h2">文档评审</h2></div>
+        <p class="wh-lead" data-reveal style="--d:80ms">接入 Markdown 文档，逐段评论、集中处理，再跟踪每份文档的状态，四步走完一个闭环。</p>
+      </header>
+      <div class="wh-bento">
+        <a class="wh-tile" href="/dashboard#doc-sources" target="luyin-dashboard" data-reveal>
+          <span class="wh-tile-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18"/><path d="M6 7V5a2 2 0 0 1 2-2h3l2 2h3a2 2 0 0 1 2 2v2"/><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12"/></svg></span>
+          <span class="wh-tile-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></svg></span>
+          <span class="wh-tile-body">
+            <span class="wh-step">STEP 01</span>
+            <span class="wh-tile-name">文档源</span>
+            <span class="wh-tile-desc">指定评审从哪些目录读取 Markdown</span>
+          </span>
+        </a>
+        <a class="wh-tile" href="/dashboard#docs" target="luyin-dashboard" data-reveal style="--d:70ms">
+          <span class="wh-tile-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h11l3 3v13H5z"/><path d="M16 4v4h4"/><path d="M8 12h8"/><path d="M8 16h5"/></svg></span>
+          <span class="wh-tile-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></svg></span>
+          <span class="wh-tile-body">
+            <span class="wh-step">STEP 02</span>
+            <span class="wh-tile-name">文档评审</span>
+            <span class="wh-tile-desc">对 PRD、TDD、测试用例逐段评论</span>
+          </span>
+        </a>
+        <a class="wh-tile" href="/dashboard#comment-center" target="luyin-dashboard" data-reveal style="--d:140ms">
+          <span class="wh-tile-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/><path d="M8 9h8"/><path d="M8 13h5"/></svg></span>
+          <span class="wh-tile-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></svg></span>
+          <span class="wh-tile-body">
+            <span class="wh-step">STEP 03</span>
+            <span class="wh-tile-name">评论中心</span>
+            <span class="wh-tile-desc">跨文档汇总评论，集中筛选处理</span>
+          </span>
+        </a>
+        <a class="wh-tile" href="/dashboard#review-workflow" target="luyin-dashboard" data-reveal style="--d:210ms">
+          <span class="wh-tile-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/><path d="M7 12h2"/></svg></span>
+          <span class="wh-tile-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></svg></span>
+          <span class="wh-tile-body">
+            <span class="wh-step">STEP 04</span>
+            <span class="wh-tile-name">评审闭环</span>
+            <span class="wh-tile-desc">跟踪每份文档的评审状态直到关闭</span>
+          </span>
+        </a>
+      </div>
+    </section>
+    <section class="wh-section">
+      <header class="wh-head">
+        <div data-reveal><span class="wh-index">04</span><h2 class="wh-h2">设置</h2></div>
+        <p class="wh-lead" data-reveal style="--d:80ms">识别引擎、各家密钥和接口地址都能在界面里改，保存后下一次录音就生效，不用改文件、不用重启。</p>
+      </header>
+      <div class="wh-bento">
+        <a class="wh-tile" href="/dashboard#settings/asr" target="luyin-dashboard" data-reveal>
+          <span class="wh-tile-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21v-7"/><path d="M4 10V3"/><path d="M12 21v-9"/><path d="M12 8V3"/><path d="M20 21v-5"/><path d="M20 12V3"/><path d="M1 14h6"/><path d="M9 8h6"/><path d="M17 16h6"/></svg></span>
+          <span class="wh-tile-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></svg></span>
+          <span class="wh-tile-body">
+            <span class="wh-tile-name">识别引擎</span>
+            <span class="wh-tile-desc">选择讯飞、阿里云或本地 FunASR 做实时转写</span>
+          </span>
+          <span class="wh-tile-stat" data-stat="engine" hidden></span>
+        </a>
+        <a class="wh-tile" href="/dashboard#settings/xfyun" target="luyin-dashboard" data-reveal style="--d:70ms">
+          <span class="wh-tile-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="5.5"/><path d="M21 2l-9.6 9.6"/><path d="M15.5 7.5l3 3L22 7l-3-3"/></svg></span>
+          <span class="wh-tile-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></svg></span>
+          <span class="wh-tile-body">
+            <span class="wh-tile-name">引擎密钥</span>
+            <span class="wh-tile-desc">各家的 AppID、APIKey 和本地服务地址</span>
+          </span>
+          <span class="wh-tile-stat" data-stat="keys" hidden></span>
+        </a>
+        <a class="wh-tile" href="/dashboard#settings/speaker" target="luyin-dashboard" data-reveal style="--d:140ms">
+          <span class="wh-tile-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 10v3"/><path d="M6 6v11"/><path d="M10 3v18"/><path d="M14 8v7"/><path d="M18 5v13"/><path d="M22 10v3"/></svg></span>
+          <span class="wh-tile-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></svg></span>
+          <span class="wh-tile-body">
+            <span class="wh-tile-name">说话人与声纹</span>
+            <span class="wh-tile-desc">分人策略、声纹匹配阈值和声纹库</span>
+          </span>
+          <span class="wh-tile-stat" data-stat="profile" hidden></span>
+        </a>
+        <a class="wh-tile" href="/dashboard#settings/summary" target="luyin-dashboard" data-reveal style="--d:210ms">
+          <span class="wh-tile-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></span>
+          <span class="wh-tile-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></svg></span>
+          <span class="wh-tile-body">
+            <span class="wh-tile-name">接口与凭据</span>
+            <span class="wh-tile-desc">会议总结接口、任务智能体和会议助手补充项</span>
+          </span>
+          <span class="wh-tile-stat" data-stat="apis" hidden></span>
+        </a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="wh-footer">
+    <span>录音助手 · Web 版</span>
+    <span>截图、悬浮窗和系统通知需要使用桌面版</span>
+  </footer>
+</div>
+
+<div class="wrap">
+  <div class="float-controls">
+    <button class="panel-toggle-btn" id="panelToggleBtn" onclick="handlePanelToggleClick(event)" title="录音后可展开识别弹窗" aria-label="录音后可展开识别弹窗" disabled>
+      <svg viewBox="0 0 24 24"><path d="M7.41 14.59 12 10l4.59 4.59L18 13.17l-6-6-6 6z"/></svg>
+    </button>
+    <button class="icon-btn" id="btn" onclick="handleClick()" style="position:relative">
+      <div class="level-ring"></div>
+      <svg id="micIcon" viewBox="0 0 24 24"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm-1-9a1 1 0 1 1 2 0v6a1 1 0 1 1-2 0V5zm-4 6a5 5 0 0 0 10 0h2a7 7 0 0 1-6 6.93V21h-2v-3.07A7 7 0 0 1 5 11h2z"/></svg>
+      <svg id="stopIcon" viewBox="0 0 24 24" style="display:none"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+    </button>
+  </div>
+
+  <!-- 流式模式面板 -->
+  <div class="panel" id="panel">
+    <div class="panel-header">
+      <div class="panel-label" id="panelLabel">
+        <span class="dot cloud"></span> <span id="modeText">实时识别</span>
+      </div>
+      <button class="dash-btn" onclick="openDashboard()" title="打开仪表盘">
+        <svg viewBox="0 0 24 24"><path d="M3 3h8v8H3V3zm0 10h8v8H3v-8zm10-10h8v8h-8V3zm10 10h8v8h-8v-8z"/></svg>
+        面板
+      </button>
+    </div>
+    <div class="transcript-area" id="transcriptArea">
+      <div class="sentence partial" id="currentSentence">等待语音...</div>
+    </div>
+    <div class="meeting-assistant" id="meetingAssistant">
+      <div class="meeting-assistant-title">
+        <span>会议助手</span>
+        <span class="meeting-assistant-status" id="meetingAssistantStatus">未连接</span>
+      </div>
+      <div class="meeting-assistant-list" id="meetingAssistantList"></div>
+      <div class="meeting-assistant-summary" id="meetingAssistantSummary"></div>
+    </div>
+    <div class="panel-status" id="panelStatus"></div>
+  </div>
+
+  <!-- 兜底模式面板（本地 Whisper） -->
+  <div class="panel" id="panelFallback">
+    <div class="panel-header">
+      <div class="panel-label"><span class="dot"></span> 本地离线识别</div>
+      <button class="dash-btn" onclick="openDashboard()" title="打开仪表盘">
+        <svg viewBox="0 0 24 24"><path d="M3 3h8v8H3V3zm0 10h8v8H3v-8zm10-10h8v8h-8V3zm10 10h8v8h-8v-8z"/></svg>
+        面板
+      </button>
+    </div>
+    <div class="panel-text dim" id="panelText">等待语音...</div>
+    <div class="panel-result" id="panelResult"></div>
+  </div>
+</div>
+
+<div class="alarm-toast" id="alarmToast">
+  <div class="alarm-icon">&#x1F514;</div>
+  <div class="alarm-title" id="alarmTitle">闹钟提醒</div>
+  <div class="alarm-sub">时间到了！</div>
+  <button class="alarm-close" onclick="dismissAlarm()">知道了</button>
+</div>
+
+<div class="speaker-label-modal-mask" id="speakerLabelModal">
+  <div class="speaker-label-modal">
+    <h3>标注说话人</h3>
+    <p id="speakerLabelModalTip">请输入姓名</p>
+    <input type="text" id="speakerLabelNameInput" placeholder="例如：张三" />
+    <div class="speaker-label-modal-actions">
+      <button onclick="closeLiveSpeakerLabelModal()">取消</button>
+      <button class="primary" onclick="submitLiveSpeakerLabel()">保存</button>
+    </div>
+  </div>
+</div>
+
+<script src="/lib/recorder-core/recorder.wav.min.js"></script>
+<script>
+  /* ── 布局常量 ── */
+  const COLLAPSED = { w: 64, h: 64 };
+  // 会议助手区域按需出现，面板高度也随之切换，关闭时不要留一片空白。
+  const EXPANDED  = { w: 420, h: 310 };
+  const EXPANDED_COMPACT = { w: 420, h: 200 };
+  const EXPANDED_FALLBACK = { w: 340, h: 130 };
+
+  /* ── VAD 参数（兜底模式用） ── */
+  const SPEECH_THRESHOLD = 15;
+  const SILENCE_TIMEOUT  = 1300;
+  const MIN_SPEECH_MS    = 600;
+
+  /* ── 状态 ── */
+  let recording = false;
+  let useStream = true;
+  let panelVisible = false;
+  // 会议助手区域是否已展示；未开启时整块隐藏，面板也用紧凑高度。
+  let meetingAssistantVisible = false;
+
+  /* 流式模式状态 */
+  let ws = null;
+  let audioCtx = null;
+  let mediaStream = null;
+  let processor = null;
+  let sourceNode = null;
+  let currentAsrProvider = "unknown";
+  let currentSpeakerSource = "unknown";
+  let currentSpeakerProfile = "multi";
+
+  /* 兜底模式状态 */
+  let rec = null, flushing = false;
+  let speaking = false, speechStart = 0, silenceTimer = null;
+  let chunkSeq = 0;
+
+  const btn           = document.getElementById("btn");
+  const panelToggleBtn = document.getElementById("panelToggleBtn");
+  const micIcon       = document.getElementById("micIcon");
+  const stopIcon      = document.getElementById("stopIcon");
+  const panel         = document.getElementById("panel");
+  const panelFallback = document.getElementById("panelFallback");
+  const transcriptArea = document.getElementById("transcriptArea");
+  const currentSentence = document.getElementById("currentSentence");
+  const meetingAssistant = document.getElementById("meetingAssistant");
+  const meetingAssistantStatus = document.getElementById("meetingAssistantStatus");
+  const meetingAssistantList = document.getElementById("meetingAssistantList");
+  const meetingAssistantSummary = document.getElementById("meetingAssistantSummary");
+  const panelStatus   = document.getElementById("panelStatus");
+  const panelText     = document.getElementById("panelText");
+  const panelResult   = document.getElementById("panelResult");
+  const modeText      = document.getElementById("modeText");
+
+  /* ══════════════════════════════════════
+     Web 首页（仅浏览器打开时运行，Electron 悬浮窗里整段跳过）
+     ══════════════════════════════════════ */
+  const webMode = document.body.classList.contains("web-mode");
+  const webMicHint = document.getElementById("webMicHint");
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+  // 最近一帧的麦克风音量（0~100），由录音回调写入，声波 canvas 读取
+  let webLevel = 0;
+  let webRecStartedAt = 0;
+  let webHintTimer = null;
+  let webHasSession = false;
+  // /api/settings 的结果，用来在首页提示「当前识别引擎还没配置完整」
+  let webSettings = null;
+
+  function formatElapsed(ms) {
+    const s = Math.floor(ms / 1000);
+    return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+  }
+
+  /** 录音开始/结束时同步首页状态：提示文案、计时、专注模式。 */
+  function syncWebMicHint() {
+    if (!webMode) return;
+    const kbd = (action) => `<span class="wh-kbd-tip">，或按 <kbd>空格</kbd> ${action}</span>`;
+    clearInterval(webHintTimer);
+    btn.setAttribute("aria-label", recording ? "结束录音" : "开始录音");
+    document.body.classList.toggle("wh-recording", recording);
+
+    if (recording) {
+      if (!webHasSession) document.body.classList.add("wh-session");
+      webHasSession = true;
+      webRecStartedAt = webRecStartedAt || Date.now();
+      const render = () => {
+        webMicHint.innerHTML = `<span class="wh-rec-dot"></span>录音中 ${formatElapsed(Date.now() - webRecStartedAt)}<span class="wh-kbd-tip"> · 按 <kbd>空格</kbd> 结束</span>`;
+      };
+      render();
+      webHintTimer = setInterval(render, 500);
+      return;
+    }
+
+    webRecStartedAt = 0;
+    if (webHasSession) {
+      webMicHint.innerHTML = `已保存到 <a href="/dashboard#recordings" target="luyin-dashboard">语音录入</a>${kbd("再录一段")}`;
+      // 停止后后端还要落盘、补发最后一句，稍等再检查有没有识别到内容并刷新计数
+      setTimeout(() => {
+        if (recording) return;
+        const heard = useStream
+          ? transcriptArea.querySelector(".sentence[data-sentence-id]")
+          : !panelText.classList.contains("dim");
+        if (!heard) webMicHint.innerHTML = `这次没有识别到语音${kbd("再试一次")}`;
+        loadWebStats();
+      }, 2500);
+    } else if (webSettings && !webSettings.providerReady) {
+      // 还没录过音、当前引擎又缺配置：先引导去设置，免得点了才报错
+      const current = webSettings.providers.find((p) => p.current);
+      webMicHint.innerHTML = `<span class="wh-hint-warn">「${esc(current.label)}」还缺 ${esc(current.missing.join("、"))}</span> · <a href="/dashboard#settings/${current.group}" target="luyin-dashboard">去设置</a>`;
+    } else {
+      webMicHint.innerHTML = `点击麦克风开始录音${kbd("开始")}`;
+    }
+  }
+
+  /** 录音按钮背后的声波：待机时缓慢扩散的涟漪，录音时一圈随音量起伏的光谱。 */
+  function initWebOrb() {
+    const host = document.querySelector(".float-controls");
+    const canvas = document.createElement("canvas");
+    canvas.className = "wh-orb-canvas";
+    canvas.setAttribute("aria-hidden", "true");
+    host.prepend(canvas);
+    const ctx = canvas.getContext("2d");
+    let dpr = 0, size = 0, mix = 0, level = 0, raf = 0, onScreen = true;
+
+    function fit() {
+      const d = Math.min(window.devicePixelRatio || 1, 2);
+      const s = canvas.clientWidth;
+      if (d === dpr && s === size) return;
+      dpr = d; size = s;
+      canvas.width = Math.round(s * d);
+      canvas.height = Math.round(s * d);
+    }
+
+    function frame(now) {
+      raf = 0;
+      fit();
+      const still = reduceMotion.matches;
+      const t = still ? 0 : now / 1000;
+      mix += ((recording ? 1 : 0) - mix) * 0.07;
+      level += (Math.min(1, webLevel / 55) - level) * 0.22;
+      webLevel *= 0.92; // 没有新音频帧时自然回落
+
+      const c = size / 2;
+      const R = btn.offsetWidth / 2 + 8;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, size, size);
+
+      // 底光：待机偏靛蓝、录音偏玫红
+      const glowR = R + 70 + level * 50;
+      const glow = ctx.createRadialGradient(c, c, R * 0.5, c, c, glowR);
+      glow.addColorStop(0, `rgba(${Math.round(99 + 145 * mix)}, ${Math.round(102 - 39 * mix)}, ${Math.round(241 - 147 * mix)}, ${0.26 + 0.1 * level})`);
+      glow.addColorStop(1, "rgba(99, 102, 241, 0)");
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(c, c, glowR, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 待机涟漪
+      if (mix < 0.99) {
+        for (let i = 0; i < 3; i++) {
+          const p = still ? (i + 1) / 4 : (t / 4.5 + i / 3) % 1;
+          ctx.beginPath();
+          ctx.arc(c, c, R + 6 + p * 92, 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(165, 180, 252, ${Math.pow(1 - p, 1.6) * 0.5 * (1 - mix)})`;
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+      }
+
+      // 录音光谱
+      if (mix > 0.01) {
+        const N = 84;
+        ctx.lineCap = "round";
+        ctx.lineWidth = 2.2;
+        for (let i = 0; i < N; i++) {
+          const a = (i / N) * Math.PI * 2 - Math.PI / 2;
+          const n = 0.5 + 0.5 * Math.sin(i * 0.83 + t * 4.1) * Math.sin(i * 0.31 - t * 2.2);
+          const len = (3 + (6 + level * 52) * n) * mix;
+          const r0 = R + 8;
+          ctx.beginPath();
+          ctx.moveTo(c + Math.cos(a) * r0, c + Math.sin(a) * r0);
+          ctx.lineTo(c + Math.cos(a) * (r0 + len), c + Math.sin(a) * (r0 + len));
+          ctx.strokeStyle = `hsla(${335 + 35 * Math.sin(a + t * 0.8)}, 95%, 74%, ${(0.3 + 0.6 * n) * mix})`;
+          ctx.stroke();
+        }
+      }
+
+      if (onScreen && !document.hidden) raf = requestAnimationFrame(frame);
+    }
+
+    const start = () => { if (!raf) raf = requestAnimationFrame(frame); };
+    new IntersectionObserver(([entry]) => {
+      onScreen = entry.isIntersecting;
+      if (onScreen) start();
+    }).observe(document.getElementById("whHero"));
+    document.addEventListener("visibilitychange", start);
+    start();
+  }
+
+  /** 「试试说」轮播：逐字浮现。 */
+  function initWebExamples() {
+    const el = document.getElementById("webTry");
+    const examples = ["记一下 明天上午交周报", "10 分钟后提醒我开会", "创建任务 整理会议纪要", "算一下 128 乘以 3"];
+    let index = 0;
+    const show = () => {
+      const text = `「${examples[index]}」`;
+      el.setAttribute("aria-label", text);
+      el.innerHTML = [...text].map((ch, i) => `<span aria-hidden="true" style="--i:${i}">${esc(ch)}</span>`).join("");
+      el.classList.remove("is-in");
+      void el.offsetWidth; // 重新触发逐字动画
+      el.classList.add("is-in");
+    };
+    show();
+    setInterval(() => {
+      if (document.hidden || webHasSession) return;
+      index = (index + 1) % examples.length;
+      show();
+    }, 3800);
+  }
+
+  async function getJSON(url) {
+    try {
+      const res = await fetch(url);
+      return res.ok ? await res.json() : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function setWebStat(key, html) {
+    const el = document.querySelector(`[data-stat="${key}"]`);
+    if (!el) return;
+    el.innerHTML = html;
+    el.hidden = false;
+  }
+
+  /** 首页卡片上的真实数据；哪个接口不可用，对应那块就不显示。 */
+  async function loadWebStats() {
+    const [stats, recordings, speakers, meeting, calc, settings] = await Promise.all([
+      getJSON("/api/stats"),
+      getJSON("/api/recordings"),
+      getJSON("/api/speakers"),
+      getJSON("/api/meeting-assistant/config"),
+      getJSON("/api/calculator/history"),
+      getJSON("/api/settings"),
+    ]);
+
+    if (stats) {
+      document.querySelector('[data-stat-wrap="recordings"]').hidden = false;
+      animateNumber(document.querySelector('.wh-feature-num[data-stat="recordings"]'), stats.recordings || 0);
+      setWebStat("notes", `<span><b>${stats.notes || 0}</b>条笔记</span>`);
+      setWebStat("alarms", `<span><b>${stats.alarms || 0}</b>个提醒</span>`);
+      const total = stats.tasks || 0;
+      const done = stats.tasksDone || 0;
+      setWebStat("tasks", total
+        ? `<span><b>${done}</b>/ ${total} 已完成</span><span class="wh-progress"><i style="width:${Math.round((done / total) * 100)}%"></i></span>`
+        : `<span>还没有任务</span>`);
+    }
+    if (Array.isArray(speakers?.data)) {
+      const active = speakers.data.filter((s) => s.status === "active").length;
+      setWebStat("speakers", `<span><b>${active}</b>位已注册声纹</span>`);
+    }
+    if (meeting) {
+      setWebStat("meeting", meeting.enabled
+        ? `<span><i class="wh-dot on"></i>已开启</span>`
+        : `<span><i class="wh-dot"></i>未开启</span>`);
+    }
+    if (Array.isArray(calc)) setWebStat("calc", `<span><b>${calc.length}</b>条计算记录</span>`);
+    if (settings?.providers) renderWebSettings(settings);
+
+    // 最近一段转写：不依赖接口排序，按开始时间取最新一条有文字的
+    const timeOf = (r) => new Date(r.startedAt || r.time).getTime() || 0;
+    const latest = Array.isArray(recordings)
+      ? recordings.filter((r) => (r.text || "").trim()).reduce((a, b) => (!a || timeOf(b) > timeOf(a) ? b : a), null)
+      : null;
+    if (latest) {
+      const when = new Date(latest.startedAt || latest.time);
+      const meta = Number.isNaN(when.getTime())
+        ? "最近一段"
+        : `最近一段 · ${when.getMonth() + 1}月${when.getDate()}日 ${String(when.getHours()).padStart(2, "0")}:${String(when.getMinutes()).padStart(2, "0")}`;
+      const mins = latest.durationMs ? ` · ${Math.max(1, Math.round(latest.durationMs / 60000))} 分钟` : "";
+      document.getElementById("whLatestMeta").textContent = meta + mins;
+      document.getElementById("whLatestText").textContent = latest.text.trim();
+      document.getElementById("whLatest").hidden = false;
+    }
+  }
+
+  /** 首页「设置」分组的状态，以及顶栏设置按钮上的提醒点。 */
+  function renderWebSettings(settings) {
+    webSettings = settings;
+    const current = settings.providers.find((p) => p.current);
+    const fieldValue = (key) => settings.groups.flatMap((g) => g.fields).find((f) => f.key === key);
+    document.getElementById("whSettingsDot").hidden = settings.providerReady;
+    setWebStat("engine", `<span><i class="wh-dot${current.ready ? " on" : ""}"></i>${esc(current.label)}${current.ready ? "" : " · 缺配置"}</span>`);
+    const cloud = settings.providers.filter((p) => p.value !== "funasr");
+    setWebStat("keys", `<span><b>${cloud.filter((p) => p.ready).length}</b>/ ${cloud.length} 家云服务已配好</span>`);
+    const profile = fieldValue("SPEAKER_PROFILE");
+    const profileLabel = profile?.options.find((o) => o.value === (profile.value || profile.defaultValue))?.label.split("：")[0];
+    if (profileLabel) setWebStat("profile", `<span>分人策略：${esc(profileLabel)}</span>`);
+    const summaryUrl = fieldValue("MEETING_SUMMARY_API_URL");
+    setWebStat("apis", `<span><i class="wh-dot${summaryUrl?.hasValue ? " on" : ""}"></i>会议总结接口${summaryUrl?.hasValue ? "已配置" : "未配置"}</span>`);
+    // 「引擎密钥」直接跳到当前引擎那一组
+    document.querySelector('[data-stat="keys"]').closest("a").href = `/dashboard#settings/${current.group}`;
+    // 只在还没录过音时刷新提示；录音结束后的提示自己会再拉一次数据，这里再调会循环
+    if (!recording && !webHasSession) syncWebMicHint();
+  }
+
+  function animateNumber(el, to) {
+    const from = Number(el.dataset.value || 0);
+    el.dataset.value = to;
+    if (reduceMotion.matches || from === to) { el.textContent = to.toLocaleString(); return; }
+    const t0 = performance.now();
+    const step = (now) => {
+      const p = Math.min(1, (now - t0) / 1200);
+      const eased = 1 - Math.pow(1 - p, 4);
+      el.textContent = Math.round(from + (to - from) * eased).toLocaleString();
+      if (p < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+
+  function initWebHome() {
+    // 把悬浮球的录音按钮和实时面板整体挪进首页舞台，录音逻辑不用复制一份
+    document.getElementById("webMicSlot").appendChild(document.querySelector(".wrap"));
+    syncWebMicHint();
+    initWebOrb();
+    initWebExamples();
+    loadWebStats();
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) loadWebStats(); });
+
+    // 主卡装饰波形
+    const wave = document.getElementById("whWave");
+    wave.innerHTML = Array.from({ length: 44 }, (_, i) => {
+      const h = 18 + Math.abs(Math.sin(i * 0.55) * Math.cos(i * 0.21)) * 82;
+      return `<i style="--h:${h.toFixed(0)}%;--i:${i}"></i>`;
+    }).join("");
+
+    // 卡片光斑跟随鼠标
+    document.getElementById("whFeatures").addEventListener("pointermove", (e) => {
+      const tile = e.target.closest(".wh-tile");
+      if (!tile) return;
+      const r = tile.getBoundingClientRect();
+      tile.style.setProperty("--mx", `${e.clientX - r.left}px`);
+      tile.style.setProperty("--my", `${e.clientY - r.top}px`);
+    });
+
+    // 录音按钮轻微跟手（磁吸），只对鼠标生效
+    const orb = document.querySelector(".float-controls");
+    document.getElementById("whHero").addEventListener("pointermove", (e) => {
+      if (e.pointerType !== "mouse" || reduceMotion.matches) return;
+      const r = orb.getBoundingClientRect();
+      const dx = e.clientX - (r.left + r.width / 2);
+      const dy = e.clientY - (r.top + r.height / 2);
+      const near = Math.hypot(dx, dy) < 220;
+      orb.style.transform = near ? `translate(${(dx * 0.1).toFixed(1)}px, ${(dy * 0.1).toFixed(1)}px)` : "";
+    });
+    document.getElementById("whHero").addEventListener("pointerleave", () => { orb.style.transform = ""; });
+
+    // 空格开始/结束录音；焦点在输入框、按钮、链接上时交给浏览器默认行为
+    document.addEventListener("keydown", (e) => {
+      if (e.code !== "Space" || e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.target.closest?.("input, textarea, select, button, a, [contenteditable]")) return;
+      if (speakerLabelModal.classList.contains("show")) return;
+      e.preventDefault();
+      handleClick();
+    });
+
+    // 进场动画：进入视口才播放
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add("is-in");
+        io.unobserve(entry.target);
+      });
+    }, { rootMargin: "0px 0px -8% 0px" });
+    document.querySelectorAll("[data-reveal]").forEach((el) => io.observe(el));
+  }
+
+  function resize(wh) {
+    // Web 版没有 Electron 悬浮窗，保留调用但在普通浏览器中安全跳过。
+    window.electronAPI?.resizeFloat(wh.w, wh.h);
+  }
+
+  /* ── 闹钟提醒弹窗 ── */
+  const alarmToast = document.getElementById("alarmToast");
+  const alarmTitleEl = document.getElementById("alarmTitle");
+  const speakerLabelModal = document.getElementById("speakerLabelModal");
+  const speakerLabelModalTip = document.getElementById("speakerLabelModalTip");
+  const speakerLabelNameInput = document.getElementById("speakerLabelNameInput");
+  let alarmTimer = null;
+  let pendingLiveSpeakerRoleId = "";
+
+  function showAlarm(title) {
+    alarmTitleEl.textContent = title || "闹钟提醒";
+    alarmToast.classList.add("show");
+    const prev = panelVisible ? currentExpandedSize() : COLLAPSED;
+    resize({ w: Math.max(prev.w, 260), h: Math.max(prev.h, 200) });
+    clearTimeout(alarmTimer);
+    alarmTimer = setTimeout(dismissAlarm, 30000);
+  }
+
+  function dismissAlarm() {
+    alarmToast.classList.remove("show");
+    clearTimeout(alarmTimer);
+    alarmTimer = null;
+    if (!panelVisible) resize(COLLAPSED);
+  }
+
+  window.electronAPI?.onAlarmTriggered?.((data) => {
+    showAlarm(data.title);
+  });
+
+  /* ══════════════════════════════
+     点击处理
+     录音圆钮只负责开始/停止，避免展开识别弹窗时误触暂停。
+     ══════════════════════════════ */
+  function handleClick() {
+    if (btn.classList.contains("working")) return;
+    recording ? stopAll() : startAll();
+  }
+
+  function handlePanelToggleClick(event) {
+    event?.preventDefault();
+    event?.stopPropagation();
+    // 识别弹窗只在录音中可展开，避免空面板占用悬浮窗空间。
+    if (btn.classList.contains("working") || !recording) return;
+    togglePanel();
+  }
+
+  function openDashboard() {
+    // Web 首页的入口都开在同一个命名窗口里，避免越点标签页越多
+    if (webMode) {
+      window.open("/dashboard", "luyin-dashboard");
+      return;
+    }
+    window.open("/dashboard", "_blank");
+  }
+
+  function togglePanel() {
+    if (panelVisible) {
+      hidePanel();
+    } else {
+      showPanel();
+    }
+  }
+
+  function syncPanelToggleButton() {
+    const nextTitle = panelVisible ? "收起识别弹窗" : (recording ? "展开识别弹窗" : "录音后可展开识别弹窗");
+    // 悬浮窗按钮状态跟随录音与弹窗状态，给用户明确的可点击反馈。
+    panelToggleBtn.disabled = !recording;
+    panelToggleBtn.classList.toggle("visible", recording);
+    panelToggleBtn.classList.toggle("active", panelVisible);
+    panelToggleBtn.title = nextTitle;
+    panelToggleBtn.setAttribute("aria-label", nextTitle);
+    syncWebMicHint();
+  }
+
+  function showPanel() {
+    panelVisible = true;
+    resize(currentExpandedSize());
+    if (useStream) {
+      panel.classList.add("show");
+      panelFallback.classList.remove("show");
+    } else {
+      panelFallback.classList.add("show");
+      panel.classList.remove("show");
+    }
+    syncPanelToggleButton();
+  }
+
+  function hidePanel() {
+    panelVisible = false;
+    panel.classList.remove("show");
+    panelFallback.classList.remove("show");
+    resize(COLLAPSED);
+    syncPanelToggleButton();
+  }
+
+  /* ══════════════════════════════
+     启动（先尝试流式，失败则兜底）
+     按钮保持 56x56 小圆，不展开面板
+     ══════════════════════════════ */
+  async function startAll() {
+    recording = true;
+    btn.classList.add("recording");
+    micIcon.style.display = "none";
+    stopIcon.style.display = "block";
+    syncPanelToggleButton();
+    // Web 首页一按下就展开字幕面板显示「连接中...」，不用干等 ASR 握手
+    if (webMode) showPanel();
+
+    try {
+      await startStream();
+      useStream = true;
+    } catch (e) {
+      console.warn("流式模式失败，降级到本地模式:", e.message);
+      useStream = false;
+      startFallback();
+    }
+
+    // 纯 Web 版没有桌面悬浮窗，开始录音后直接展开实时面板，方便边说边标注匿名说话人。
+    if (!window.electronAPI) {
+      showPanel();
+    }
+  }
+
+  function stopAll() {
+    recording = false;
+    btn.classList.remove("recording", "speaking");
+    micIcon.style.display = "block";
+    stopIcon.style.display = "none";
+    syncPanelToggleButton();
+
+    if (useStream) {
+      stopStream();
+    } else {
+      stopFallback();
+    }
+
+    // Web 首页停止后保留本次转写，方便回看；悬浮窗仍按原逻辑自动收起
+    if (panelVisible && !webMode) {
+      // 只有会议助手在跑时才需要多留一会儿等结束输出；否则按原来的 2 秒收起。
+      const holdMs = useStream && meetingAssistantVisible ? 12000 : 2000;
+      setTimeout(hidePanel, holdMs);
+    }
+  }
+
+  /* ══════════════════════════════════════
+     流式模式 —— WebSocket + Web Audio API
+     ══════════════════════════════════════ */
+  async function startStream() {
+    transcriptArea.innerHTML = '<div class="sentence partial" id="currentSentence">连接中...</div>';
+    resetMeetingAssistant();
+    currentAsrProvider = "unknown";
+    currentSpeakerSource = "unknown";
+    // 新一轮连接还没拿到 provider 前，用中性文案避免沿用上次识别引擎。
+    modeText.textContent = "实时识别";
+    panelStatus.textContent = "ASR: 连接中 | Speaker: 连接中";
+    const curSentence = document.getElementById("currentSentence");
+
+    const protocol = location.protocol === "https:" ? "wss:" : "ws:";
+    const wsUrl = `${protocol}//${location.host}/ws/asr`;
+
+    await new Promise((resolve, reject) => {
+      ws = new WebSocket(wsUrl);
+      ws.binaryType = "arraybuffer";
+
+      const timeout = setTimeout(() => {
+        reject(new Error("WebSocket 连接超时"));
+        try { ws.close(); } catch {}
+      }, 8000);
+
+      ws.onopen = () => {
+        clearTimeout(timeout);
+        ws.send(JSON.stringify({ type: "start" }));
+      };
+
+      ws.onmessage = (evt) => {
+        const msg = JSON.parse(evt.data);
+        switch (msg.type) {
+          case "ready":
+            clearTimeout(timeout);
+            resolve();
+            updateCurrentSentence("等待语音...", true);
+            break;
+          case "session-meta":
+            currentSpeakerProfile = (msg.speakerProfile || "multi").toLowerCase();
+            updateEngineStatus(msg.asrProvider, currentSpeakerSource);
+            break;
+          case "partial":
+            btn.classList.add("speaking");
+            updateCurrentSentence(msg.text, true);
+            break;
+          case "final":
+            btn.classList.remove("speaking");
+            finalizeSentence(msg.text, msg.sentenceId, msg.speakerLabel, msg.speakerStatus, msg.roleId);
+            if (msg.speakerSource) updateEngineStatus(currentAsrProvider, msg.speakerSource);
+            break;
+          case "speaker-update":
+            attachSpeakerLabel(msg.sentenceId, msg.speakerLabel, msg.speakerStatus, msg.roleId);
+            if (msg.speakerSource) updateEngineStatus(currentAsrProvider, msg.speakerSource);
+            break;
+          case "speaker-identified":
+            // 1:N 搜索识别到人名后，批量更新该角色所有句子的标签
+            batchUpdateSpeakerByRole(msg.roleId, msg.speakerLabel);
+            break;
+          case "speaker-labeled":
+            batchUpdateSpeakerByRole(msg.roleId, msg.speakerLabel);
+            break;
+          case "meeting-assistant-status":
+            updateMeetingAssistantStatus(msg.status);
+            break;
+          case "meeting-assistant-delta":
+            upsertMeetingAssistantItem(msg.sentenceId, msg.fullContent || msg.content || "思考中...");
+            break;
+          case "meeting-assistant-final":
+            upsertMeetingAssistantItem(msg.sentenceId, msg.content || "已处理");
+            break;
+          case "meeting-assistant-summary-delta":
+            updateMeetingAssistantSummary(msg.fullContent || msg.content || "正在生成会议结束输出...");
+            break;
+          case "meeting-assistant-summary":
+            updateMeetingAssistantSummary(msg.content || "会议结束输出已生成");
+            updateMeetingAssistantStatus("done");
+            break;
+          case "meeting-assistant-error":
+            showMeetingAssistantError(msg.message);
+            break;
+          case "command":
+            attachCommandResult(msg.sentenceId, msg.result);
+            break;
+          case "agent":
+            attachCommandResult(msg.sentenceId, {
+              action: "agent",
+              message: typeof msg.data?.agentReply === "string"
+                ? msg.data.agentReply.slice(0, 80)
+                : "AI 已回复"
+            });
+            break;
+          case "error":
+            panelStatus.textContent = msg.message;
+            break;
+        }
+      };
+
+      ws.onerror = (err) => {
+        clearTimeout(timeout);
+        reject(new Error("WebSocket 连接失败"));
+      };
+
+      ws.onclose = () => {
+        if (recording) {
+          panelStatus.textContent = "连接断开";
+        }
+      };
+    });
+
+    mediaStream = await navigator.mediaDevices.getUserMedia({
+      audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true }
+    });
+
+    audioCtx = new AudioContext({ sampleRate: 16000 });
+    sourceNode = audioCtx.createMediaStreamSource(mediaStream);
+
+    const bufferSize = 2048;
+    processor = audioCtx.createScriptProcessor(bufferSize, 1, 1);
+
+    sourceNode.connect(processor);
+    processor.connect(audioCtx.destination);
+
+    processor.onaudioprocess = (e) => {
+      if (!ws || ws.readyState !== WebSocket.OPEN) return;
+      const float32 = e.inputBuffer.getChannelData(0);
+
+      let resampled = float32;
+      if (audioCtx.sampleRate !== 16000) {
+        resampled = resample(float32, audioCtx.sampleRate, 16000);
+      }
+
+      const int16 = float32ToInt16(resampled);
+      ws.send(int16.buffer);
+
+      const power = computePower(float32);
+      webLevel = power;
+      if (power > 10) {
+        btn.classList.add("speaking");
+      }
+    };
+  }
+
+  function prettyAsrProvider(provider) {
+    const p = String(provider || "unknown").toLowerCase();
+    // 与后端 provider 枚举保持一致，避免把本地 FunASR 误展示成云端识别。
+    if (p === "xfyun") return "讯飞云端识别";
+    if (p === "xfyun_llm") return "讯飞大模型识别";
+    if (p === "funasr" || p === "sensevoice") return "FunASR 实时识别";
+    if (p === "aliyun" || p === "isi") return "阿里云识别";
+    return "实时识别";
+  }
+
+  function shortAsrProvider(provider) {
+    const p = String(provider || "unknown").toLowerCase();
+    // 底部状态栏空间更紧，保留短名称即可。
+    if (p === "xfyun") return "XFYun";
+    if (p === "xfyun_llm") return "XFYun-LLM";
+    if (p === "funasr" || p === "sensevoice") return "FunASR";
+    if (p === "aliyun" || p === "isi") return "Aliyun";
+    return "Unknown";
+  }
+
+  function prettySpeakerSource(source) {
+    const s = String(source || "unknown").toLowerCase();
+    // 说话人标签可能来自讯飞原生角色分离，也可能来自本地匿名分人兜底。
+    if (s === "xfyun") return "XFYun";
+    if (s === "xfyun_llm") return "XFYun-LLM";
+    if (s === "funasr" || s === "sensevoice") return "FunASR";
+    if (s === "aliyun" || s === "isi") return "Aliyun";
+    if (s === "local") return "LocalFallback";
+    return "Unknown";
+  }
+
+  function updateEngineStatus(asrProvider, speakerSource) {
+    if (asrProvider) currentAsrProvider = asrProvider;
+    if (speakerSource) currentSpeakerSource = speakerSource;
+    modeText.textContent = prettyAsrProvider(currentAsrProvider);
+    // 在面板底部明确显示当前引擎来源，避免用户误判当前识别路径。
+    panelStatus.textContent = `ASR: ${shortAsrProvider(currentAsrProvider)} | Speaker: ${prettySpeakerSource(currentSpeakerSource)} | Profile: ${currentSpeakerProfile}`;
+  }
+
+  function prettyMeetingAssistantStatus(status) {
+    const s = String(status || "").toLowerCase();
+    // 状态由后端会议助手旁路发送，只影响独立展示区，不影响转写主链路。
+    if (s === "ready") return "已连接";
+    if (s === "thinking") return "处理中";
+    if (s === "finalizing") return "生成结束输出";
+    if (s === "done") return "已完成";
+    if (s === "disabled") return "未配置";
+    return "等待中";
+  }
+
+  /** 当前展开态应有的面板尺寸。 */
+  function currentExpandedSize() {
+    if (!useStream) return EXPANDED_FALLBACK;
+    return meetingAssistantVisible ? EXPANDED : EXPANDED_COMPACT;
+  }
+
+  /**
+   * 显示/隐藏会议助手区域，并同步调整面板高度。
+   * 会议助手未开启时整块都不该出现，而不是显示一个"未配置"的空壳。
+   * @param {boolean} visible
+   */
+  function setMeetingAssistantVisible(visible) {
+    if (meetingAssistantVisible === visible) return;
+    meetingAssistantVisible = visible;
+    meetingAssistant.classList.toggle("show", visible);
+    if (panelVisible) resize(currentExpandedSize());
+  }
+
+  function resetMeetingAssistant() {
+    setMeetingAssistantVisible(false);
+    meetingAssistantStatus.textContent = "连接中";
+    meetingAssistantList.innerHTML = "";
+    meetingAssistantSummary.textContent = "";
+    meetingAssistantSummary.classList.remove("show");
+  }
+
+  function updateMeetingAssistantStatus(status) {
+    // 服务端在未配置/已关闭时会发 disabled，此时整块保持隐藏。
+    if (String(status || "").toLowerCase() === "disabled") {
+      setMeetingAssistantVisible(false);
+      return;
+    }
+    setMeetingAssistantVisible(true);
+    meetingAssistantStatus.textContent = prettyMeetingAssistantStatus(status);
+  }
+
+  function upsertMeetingAssistantItem(sentenceId, content) {
+    setMeetingAssistantVisible(true);
+    meetingAssistantStatus.textContent = "处理中";
+    const itemId = `meetingAssistantItem-${sentenceId}`;
+    let item = document.getElementById(itemId);
+    if (!item) {
+      item = document.createElement("div");
+      item.id = itemId;
+      item.className = "meeting-assistant-item";
+      meetingAssistantList.appendChild(item);
+    }
+    item.innerHTML = esc(content || "");
+    meetingAssistantList.scrollTop = meetingAssistantList.scrollHeight;
+  }
+
+  function updateMeetingAssistantSummary(content) {
+    setMeetingAssistantVisible(true);
+    meetingAssistantSummary.classList.add("show");
+    meetingAssistantSummary.innerHTML = esc(content || "");
+  }
+
+  function showMeetingAssistantError(message) {
+    setMeetingAssistantVisible(true);
+    meetingAssistantStatus.textContent = "异常";
+    const item = document.createElement("div");
+    item.className = "meeting-assistant-item";
+    item.innerHTML = esc(message || "会议助手请求失败");
+    meetingAssistantList.appendChild(item);
+    meetingAssistantList.scrollTop = meetingAssistantList.scrollHeight;
+  }
+
+  function stopStream() {
+    if (processor) {
+      processor.disconnect();
+      processor = null;
+    }
+    if (sourceNode) {
+      sourceNode.disconnect();
+      sourceNode = null;
+    }
+    if (audioCtx) {
+      audioCtx.close().catch(() => {});
+      audioCtx = null;
+    }
+    if (mediaStream) {
+      mediaStream.getTracks().forEach((t) => t.stop());
+      mediaStream = null;
+    }
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: "stop" }));
+      setTimeout(() => {
+        try { ws.close(); } catch {}
+        ws = null;
+      }, 2000);
+    } else {
+      ws = null;
+    }
+    btn.classList.remove("speaking");
+  }
+
+  /* ── 流式面板更新 ── */
+  function esc(s) {
+    return String(s || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function updateCurrentSentence(text, isPartial) {
+    let el = document.getElementById("currentSentence");
+    if (!el) {
+      el = document.createElement("div");
+      el.id = "currentSentence";
+      el.className = "sentence partial";
+      transcriptArea.appendChild(el);
+    }
+    // Partial 阶段也展示“识别中”标签，避免用户误以为未开启说话人识别。
+    el.innerHTML = createSentenceInnerHTML(text || "等待语音...", "识别中", "pending");
+    el.className = isPartial ? "sentence partial" : "sentence";
+    transcriptArea.scrollTop = transcriptArea.scrollHeight;
+  }
+
+  function createSentenceInnerHTML(text, speakerLabel, speakerStatus, roleId) {
+    const safeText = esc(text || "");
+    const label = esc(speakerLabel || "识别中");
+    const pending = speakerStatus === "pending";
+    const canLabel = roleId && /^说话人\d+$/.test(String(speakerLabel || ""));
+    const encodedRoleId = encodeURIComponent(roleId || "");
+    const encodedLabel = encodeURIComponent(speakerLabel || "");
+    const labelButton = canLabel
+      ? `<button type="button" class="live-speaker-label-btn" data-role-id="${esc(roleId)}" data-current-label="${label}" onclick="event.preventDefault();event.stopPropagation();openLiveSpeakerLabelModal('${encodedRoleId}', '${encodedLabel}')">标注</button>`
+      : "";
+    // 实时识别阶段先显示“识别中”，后续由 speaker-update 补齐标签。
+    return `<span class="speaker-tag ${pending ? "pending" : ""}">${label}</span>${labelButton}<span class="speaker-text">${safeText}</span>`;
+  }
+
+  function finalizeSentence(text, sentenceId, speakerLabel, speakerStatus, roleId) {
+    const existing = document.getElementById("currentSentence");
+    if (existing) {
+      existing.removeAttribute("id");
+      existing.className = "sentence";
+      existing.innerHTML = createSentenceInnerHTML(text, speakerLabel, speakerStatus, roleId);
+      existing.dataset.sentenceId = sentenceId;
+      if (roleId) existing.dataset.speakerRoleId = roleId;
+    }
+
+    const next = document.createElement("div");
+    next.id = "currentSentence";
+    next.className = "sentence partial";
+    next.textContent = "等待语音...";
+    transcriptArea.appendChild(next);
+    transcriptArea.scrollTop = transcriptArea.scrollHeight;
+  }
+
+  function attachSpeakerLabel(sentenceId, speakerLabel, speakerStatus, roleId) {
+    const els = transcriptArea.querySelectorAll(`.sentence[data-sentence-id="${sentenceId}"]`);
+    const el = els[els.length - 1];
+    if (!el) return;
+    const textEl = el.querySelector(".speaker-text");
+    const rawText = textEl ? textEl.textContent : el.textContent;
+    const finalRoleId = roleId || el.dataset.speakerRoleId || "";
+    el.innerHTML = createSentenceInnerHTML(rawText, speakerLabel, speakerStatus, finalRoleId);
+    if (finalRoleId) el.dataset.speakerRoleId = finalRoleId;
+    transcriptArea.scrollTop = transcriptArea.scrollHeight;
+  }
+
+  // 批量更新所有标记了临时"说话人N"的句子为已识别人名
+  function batchUpdateSpeakerByRole(roleId, speakerLabel) {
+    if (!roleId || !speakerLabel) return;
+    const allSentences = transcriptArea.querySelectorAll(".sentence[data-sentence-id]");
+    allSentences.forEach((el) => {
+      const tagEl = el.querySelector(".speaker-tag");
+      if (!tagEl) return;
+      const currentTag = tagEl.textContent || "";
+      // 匹配"说话人N"格式的临时标签（N 对应 roleId 中的数字）
+      const roleMatch = String(roleId).match(/^role_(\d+)$/);
+      const expectedTemp = roleMatch ? `说话人${roleMatch[1]}` : null;
+      if (expectedTemp && currentTag === expectedTemp) {
+        const textEl = el.querySelector(".speaker-text");
+        const rawText = textEl ? textEl.textContent : "";
+        el.innerHTML = createSentenceInnerHTML(rawText, speakerLabel, "confirmed", roleId);
+      } else if (el.dataset.speakerRoleId === roleId) {
+        const textEl = el.querySelector(".speaker-text");
+        const rawText = textEl ? textEl.textContent : "";
+        el.innerHTML = createSentenceInnerHTML(rawText, speakerLabel, "manual", roleId);
+      }
+    });
+  }
+
+  function openLiveSpeakerLabelModal(encodedRoleId, encodedCurrentLabel) {
+    const roleId = decodeURIComponent(encodedRoleId || "");
+    const currentLabel = decodeURIComponent(encodedCurrentLabel || "");
+    if (!roleId) {
+      panelStatus.textContent = "未找到可标注的说话人";
+      return;
+    }
+    pendingLiveSpeakerRoleId = roleId;
+    speakerLabelModalTip.textContent = `将「${currentLabel || roleId}」标注为：`;
+    speakerLabelNameInput.value = "";
+    speakerLabelModal.classList.add("show");
+    const base = panelVisible ? currentExpandedSize() : COLLAPSED;
+    resize({ w: Math.max(base.w, 300), h: Math.max(base.h, 240) });
+    setTimeout(() => speakerLabelNameInput.focus(), 0);
+  }
+
+  function closeLiveSpeakerLabelModal() {
+    speakerLabelModal.classList.remove("show");
+    pendingLiveSpeakerRoleId = "";
+    if (!panelVisible) resize(COLLAPSED);
+  }
+
+  function submitLiveSpeakerLabel() {
+    labelLiveSpeaker(pendingLiveSpeakerRoleId, speakerLabelNameInput.value || "");
+  }
+
+  function labelLiveSpeaker(roleId, name) {
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      showFallbackResult("实时连接已断开，无法标注", true);
+      return;
+    }
+    const trimmed = name.trim();
+    if (!trimmed) {
+      panelStatus.textContent = "请输入说话人姓名";
+      return;
+    }
+    ws.send(JSON.stringify({ type: "label-speaker", roleId, name: trimmed }));
+    closeLiveSpeakerLabelModal();
+  }
+
+  document.addEventListener("click", (event) => {
+    const button = event.target.closest(".live-speaker-label-btn");
+    if (!button) return;
+    event.preventDefault();
+    event.stopPropagation();
+    openLiveSpeakerLabelModal(
+      encodeURIComponent(button.dataset.roleId || ""),
+      encodeURIComponent(button.dataset.currentLabel || "")
+    );
+  });
+
+  function attachCommandResult(sentenceId, result) {
+    if (!result || !result.message) return;
+    const els = transcriptArea.querySelectorAll(`.sentence[data-sentence-id="${sentenceId}"]`);
+    const el = els[els.length - 1];
+    if (!el) return;
+
+    const tag = document.createElement("span");
+    tag.className = result.action === "unknown" ? "cmd-tag err" : "cmd-tag";
+    tag.textContent = result.message;
+    el.appendChild(tag);
+    transcriptArea.scrollTop = transcriptArea.scrollHeight;
+  }
+
+  /* ── 音频工具 ── */
+  function float32ToInt16(float32) {
+    const int16 = new Int16Array(float32.length);
+    for (let i = 0; i < float32.length; i++) {
+      const s = Math.max(-1, Math.min(1, float32[i]));
+      int16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+    }
+    return int16;
+  }
+
+  function resample(float32, fromRate, toRate) {
+    if (fromRate === toRate) return float32;
+    const ratio = fromRate / toRate;
+    const newLen = Math.round(float32.length / ratio);
+    const result = new Float32Array(newLen);
+    for (let i = 0; i < newLen; i++) {
+      const srcIdx = i * ratio;
+      const low = Math.floor(srcIdx);
+      const high = Math.min(low + 1, float32.length - 1);
+      const frac = srcIdx - low;
+      result[i] = float32[low] * (1 - frac) + float32[high] * frac;
+    }
+    return result;
+  }
+
+  function computePower(float32) {
+    let sum = 0;
+    for (let i = 0; i < float32.length; i++) sum += float32[i] * float32[i];
+    return Math.min(100, Math.round(Math.sqrt(sum / float32.length) * 500));
+  }
+
+  /* ══════════════════════════════════════
+     兜底模式 —— recorder-core + 本地 Whisper
+     ══════════════════════════════════════ */
+  function startFallback() {
+    panelText.textContent = "等待语音...";
+    panelText.className = "panel-text dim";
+    panelResult.textContent = "";
+    panelResult.className = "panel-result";
+    speaking = false; speechStart = 0; flushing = false;
+    clearSilence();
+
+    rec = createRecorder();
+    rec.open(() => {
+      rec.start();
+    }, () => showFallbackResult("麦克风打开失败", true));
+  }
+
+  function createRecorder() {
+    return Recorder({
+      type: "wav", sampleRate: 16000, bitRate: 16,
+      onProcess(_bufs, powerLevel, _dur) {
+        if (!recording || flushing) return;
+        vadProcess(powerLevel);
+      }
+    });
+  }
+
+  function vadProcess(power) {
+    webLevel = power;
+    if (power > SPEECH_THRESHOLD) {
+      if (!speaking) {
+        speaking = true;
+        speechStart = Date.now();
+        btn.classList.add("speaking");
+        panelText.textContent = "正在聆听...";
+        panelText.className = "panel-text dim";
+      }
+      clearSilence();
+    } else if (speaking && !silenceTimer) {
+      silenceTimer = setTimeout(() => {
+        silenceTimer = null;
+        if (Date.now() - speechStart >= MIN_SPEECH_MS) flushAudio();
+        speaking = false;
+        speechStart = 0;
+        btn.classList.remove("speaking");
+      }, SILENCE_TIMEOUT);
+    }
+  }
+
+  function clearSilence() {
+    if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
+  }
+
+  function flushAudio() {
+    if (!rec || !recording || flushing) return;
+    flushing = true;
+    const old = rec;
+    rec = null;
+
+    old.stop((blob) => {
+      old.close();
+      sendChunk(blob);
+      if (recording) {
+        rec = createRecorder();
+        rec.open(() => { rec.start(); flushing = false; }, () => { flushing = false; });
+      } else {
+        flushing = false;
+      }
+    }, () => {
+      old.close();
+      if (recording) {
+        rec = createRecorder();
+        rec.open(() => { rec.start(); flushing = false; }, () => { flushing = false; });
+      } else {
+        flushing = false;
+      }
+    });
+  }
+
+  async function sendChunk(blob) {
+    if (blob.size < 2000) return;
+    const seq = ++chunkSeq;
+    panelText.textContent = "识别中...";
+    panelText.className = "panel-text dim";
+
+    try {
+      const fd = new FormData();
+      fd.append("audio", blob, "r.wav");
+      const res = await fetch("/api/save", { method: "POST", body: fd });
+      const data = await res.json();
+      if (seq !== chunkSeq) return;
+
+      if (data.text && !data.text.startsWith("（")) {
+        panelText.textContent = data.text;
+        panelText.className = "panel-text";
+      }
+      if (data.command && data.command.message) {
+        showFallbackResult(data.command.message, false);
+      } else if (data.agent && data.agent.agentReply) {
+        const r = typeof data.agent.agentReply === "string" ? data.agent.agentReply.slice(0, 80) : "AI 已回复";
+        showFallbackResult(r, false);
+      } else if (data.text && !data.text.startsWith("（")) {
+        showFallbackResult("已记录", false);
+      } else {
+        panelText.textContent = "等待语音...";
+        panelText.className = "panel-text dim";
+      }
+    } catch {
+      if (seq === chunkSeq) showFallbackResult("识别失败", true);
+    }
+  }
+
+  function stopFallback() {
+    clearSilence();
+
+    if (!rec) return;
+    rec.stop((blob) => {
+      rec.close(); rec = null;
+      if (speaking && blob.size > 2000) sendChunk(blob);
+      speaking = false;
+    }, () => {
+      rec.close(); rec = null;
+    });
+  }
+
+  function showFallbackResult(msg, isErr) {
+    panelResult.textContent = msg;
+    panelResult.className = isErr ? "panel-result err" : "panel-result";
+  }
+
+  if (webMode) initWebHome();
+</script>
+</body>
+</html>

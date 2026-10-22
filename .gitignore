@@ -1,0 +1,28 @@
+# 依赖与构建产物
+node_modules/
+code/dist*/
+*.dmg
+*.zip
+
+# 配置与密钥（示例见 .env.example）
+.env
+.env.*
+!.env.example
+
+# 本地运行数据：录音、转写、笔记、任务、声纹等都只留在本机
+code/data/
+code/recordings/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+tools/funasr/offline_segments/
+
+# 编辑器与系统文件
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log

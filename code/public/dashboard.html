@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>录音助手 - 控制面板</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">
+        <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm-1-9a1 1 0 1 1 2 0v6a1 1 0 1 1-2 0V5zm-4 6a5 5 0 0 0 10 0h2a7 7 0 0 1-6 6.93V21h-2v-3.07A7 7 0 0 1 5 11h2z"/></svg>
+      </div>
+      <span class="logo-text">录音助手</span>
+    </div>
+
+    <nav class="nav">
+      <a class="nav-item active" data-page="home">
+        <svg viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1h-2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>首页</span>
+      </a>
+      <a class="nav-item" data-page="recordings">
+        <svg viewBox="0 0 24 24"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm-1-9a1 1 0 1 1 2 0v6a1 1 0 1 1-2 0V5zm-4 6a5 5 0 0 0 10 0h2a7 7 0 0 1-6 6.93V21h-2v-3.07A7 7 0 0 1 5 11h2z" fill="currentColor"/></svg>
+        <span>语音录入</span>
+      </a>
+      <a class="nav-item" data-page="meeting-assistant">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/><path d="M8 9h8"/><path d="M8 13h5"/></svg>
+        <span>会议助手</span>
+      </a>
+      <a class="nav-item" data-page="speakers">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+        <span>人物声纹</span>
+      </a>
+      <a class="nav-item" data-page="screenshots" data-desktop-feature="screenshot">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        <span>截图</span>
+      </a>
+      <a class="nav-item" data-page="notes">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        <span>记事本</span>
+      </a>
+      <a class="nav-item" data-page="tasks">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+        <span>工作任务</span>
+      </a>
+      <a class="nav-item" data-page="alarms">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+        <span>闹钟提醒</span>
+      </a>
+      <a class="nav-item" data-page="calculator">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="8" y2="10.01"/><line x1="12" y1="10" x2="12" y2="10.01"/><line x1="16" y1="10" x2="16" y2="10.01"/><line x1="8" y1="14" x2="8" y2="14.01"/><line x1="12" y1="14" x2="12" y2="14.01"/><line x1="16" y1="14" x2="16" y2="14.01"/><line x1="8" y1="18" x2="8" y2="18.01"/><line x1="12" y1="18" x2="16" y2="18"/></svg>
+        <span>计算器</span>
+      </a>
+      <a class="nav-item" data-page="docs">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h11l3 3v13H5z"/><path d="M16 4v4h4"/><path d="M8 12h8"/><path d="M8 16h5"/></svg>
+        <span>文档评审</span>
+      </a>
+      <a class="nav-item" data-page="comment-center">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/><path d="M8 9h8"/><path d="M8 13h5"/></svg>
+        <span>评论中心</span>
+      </a>
+      <a class="nav-item" data-page="doc-sources">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18"/><path d="M6 7V5a2 2 0 0 1 2-2h3l2 2h3a2 2 0 0 1 2 2v2"/><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12"/></svg>
+        <span>文档源</span>
+      </a>
+      <a class="nav-item" data-page="review-workflow">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/><path d="M7 12h2"/></svg>
+        <span>评审闭环</span>
+      </a>
+      <a class="nav-item nav-item-settings" data-page="settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span>设置</span>
+        <i class="nav-dot" id="settingsNavDot" title="当前识别引擎还没配置完整" hidden></i>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="version">v1.0.0</div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <!-- 顶栏 -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="btn-icon" id="toggleSidebar">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <h2 class="page-title" id="pageTitle">首页</h2>
+      </div>
+      <div class="topbar-right">
+        <div class="search-box">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="globalSearch" placeholder="搜索笔记、任务、录音..." />
+        </div>
+        <button class="btn-icon" id="btnRefresh" title="刷新">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- 内容区 -->
+    <div class="content">
+      <!-- 首页 -->
+      <section class="page active" id="page-home">
+        <div class="stats-grid" id="statsGrid"></div>
+        <div class="two-col">
+          <div class="card">
+            <div class="card-header">
+              <h3>近期动态</h3>
+            </div>
+            <div class="activity-list" id="activityList"></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <h3>待办任务</h3>
+              <button class="btn btn-sm" onclick="App.navigate('tasks')">查看全部</button>
+            </div>
+            <div id="pendingTasks"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 语音录入 -->
+      <section class="page" id="page-recordings">
+        <div class="card">
+          <div class="card-header">
+            <h3>录音与转写记录</h3>
+            <div class="card-header-actions">
+              <button class="btn btn-primary" id="btnMeetingSummary">会议内容复制</button>
+              <button class="btn btn-danger" id="btnClearRecordings" onclick="App.clearRecordings()">清空全部</button>
+            </div>
+          </div>
+          <div class="recording-list" id="recordingList"></div>
+        </div>
+      </section>
+
+      <!-- 会议助手 -->
+      <section class="page" id="page-meeting-assistant">
+        <div class="card">
+          <div class="card-header">
+            <h3>会议助手</h3>
+            <div class="card-header-actions">
+              <span class="meeting-assistant-state" id="meetingAssistantDashStatus">等待连接</span>
+              <span class="meeting-assistant-switch" id="meetingAssistantSwitch">已关闭</span>
+              <button class="btn btn-sm btn-primary" id="btnMeetingAssistantToggle" onclick="App.toggleMeetingAssistant()">开启</button>
+            </div>
+          </div>
+          <div class="meeting-assistant-config-summary" id="meetingAssistantConfigSummary">
+            会议助手未配置
+          </div>
+          <div class="meeting-assistant-asr-status" id="meetingAssistantAsrStatus">
+            在线识别：未开始 | ASR: Unknown | Speaker: Unknown | Profile: multi
+          </div>
+          <div class="meeting-assistant-dashboard">
+            <div class="meeting-assistant-live">
+              <h4>实时反馈</h4>
+              <div id="meetingAssistantDashList" class="meeting-assistant-dash-list">
+                <div class="empty-state"><p>录音开始后，这里会显示每句对应的助手反馈</p></div>
+              </div>
+            </div>
+            <div class="meeting-assistant-final">
+              <h4>会议结束输出</h4>
+              <div id="meetingAssistantDashSummary" class="meeting-assistant-dash-summary">
+                停止录音后会自动发送“会议最后总结”，结果会显示在这里。
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 人物声纹 -->
+      <section class="page" id="page-speakers">
+        <div class="card">
+          <div class="card-header">
+            <h3>人物与声纹库</h3>
+            <button class="btn btn-primary" id="btnNewSpeaker">新增人物</button>
+          </div>
+          <div class="speaker-status-banner" id="speakerStatusBanner"></div>
+          <div class="speaker-list" id="speakerList"></div>
+          <div class="empty-state" id="speakerEmpty" style="display:none">
+            <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+            <p>暂无人物声纹</p>
+            <p class="sub">先新增人物，再上传 10 秒到 1 分钟的单人样本音频注册声纹</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 截图 -->
+      <section class="page" id="page-screenshots" data-desktop-feature="screenshot">
+        <div class="card">
+          <div class="card-header">
+            <h3>屏幕截图</h3>
+            <button class="btn btn-primary" id="btnTakeScreenshot">截取屏幕</button>
+          </div>
+          <div class="screenshot-grid" id="screenshotGrid"></div>
+          <div class="empty-state" id="screenshotEmpty" style="display:none">
+            <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            <p>暂无截图</p>
+            <p class="sub">点击上方按钮或语音说"截图"来截取屏幕</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 记事本 -->
+      <section class="page" id="page-notes">
+        <div class="card">
+          <div class="card-header">
+            <h3>记事本</h3>
+            <button class="btn btn-primary" id="btnNewNote">新建笔记</button>
+          </div>
+          <div class="note-list" id="noteList"></div>
+          <div class="empty-state" id="noteEmpty" style="display:none">
+            <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            <p>暂无笔记</p>
+            <p class="sub">点击上方按钮或语音说"记一下..."来创建笔记</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 工作任务 -->
+      <section class="page" id="page-tasks">
+        <div class="card">
+          <div class="card-header">
+            <h3>工作任务</h3>
+            <button class="btn btn-primary" id="btnNewTask">新建任务</button>
+          </div>
+          <div class="task-filters" id="taskFilters">
+            <button class="filter-btn active" data-filter="all">全部</button>
+            <button class="filter-btn" data-filter="pending">待处理</button>
+            <button class="filter-btn" data-filter="in_progress">进行中</button>
+            <button class="filter-btn" data-filter="done">已完成</button>
+          </div>
+          <div class="task-list" id="taskList"></div>
+          <div class="empty-state" id="taskEmpty" style="display:none">
+            <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+            <p>暂无任务</p>
+            <p class="sub">点击上方按钮或语音说"创建任务..."来新建任务</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 闹钟 -->
+      <section class="page" id="page-alarms">
+        <div class="card">
+          <div class="card-header">
+            <h3>闹钟与提醒</h3>
+            <button class="btn btn-primary" id="btnNewAlarm">新建提醒</button>
+          </div>
+          <div class="alarm-list" id="alarmList"></div>
+          <div class="empty-state" id="alarmEmpty" style="display:none">
+            <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+            <p>暂无提醒</p>
+            <p class="sub">语音说"5分钟后提醒我..."来创建提醒</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 计算器 -->
+      <section class="page" id="page-calculator">
+        <div class="two-col">
+          <div class="card calculator-card">
+            <div class="calc-display" id="calcDisplay">0</div>
+            <div class="calc-grid">
+              <button class="calc-btn func" data-val="C">C</button>
+              <button class="calc-btn func" data-val="(">(</button>
+              <button class="calc-btn func" data-val=")">)</button>
+              <button class="calc-btn op" data-val="/">&divide;</button>
+              <button class="calc-btn" data-val="7">7</button>
+              <button class="calc-btn" data-val="8">8</button>
+              <button class="calc-btn" data-val="9">9</button>
+              <button class="calc-btn op" data-val="*">&times;</button>
+              <button class="calc-btn" data-val="4">4</button>
+              <button class="calc-btn" data-val="5">5</button>
+              <button class="calc-btn" data-val="6">6</button>
+              <button class="calc-btn op" data-val="-">&minus;</button>
+              <button class="calc-btn" data-val="1">1</button>
+              <button class="calc-btn" data-val="2">2</button>
+              <button class="calc-btn" data-val="3">3</button>
+              <button class="calc-btn op" data-val="+">+</button>
+              <button class="calc-btn zero" data-val="0">0</button>
+              <button class="calc-btn" data-val=".">.</button>
+              <button class="calc-btn equal" data-val="=">=</button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><h3>计算历史</h3></div>
+            <div class="calc-history" id="calcHistory"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 文档评审 -->
+      <section class="page" id="page-docs">
+        <div class="doc-review-layout">
+          <aside class="doc-review-sidebar card">
+            <div class="card-header">
+              <h3>文档目录</h3>
+              <button class="btn btn-sm" id="btnReloadDocs">刷新</button>
+            </div>
+            <div class="form-group doc-source-picker">
+              <label>文档源</label>
+              <select id="docSourceSelect"></select>
+            </div>
+            <div class="doc-source-revision" id="docSourceRevision">尚未扫描版本</div>
+            <div class="doc-tree" id="docTree"></div>
+          </aside>
+
+          <section class="doc-review-main card">
+            <div class="doc-review-toolbar">
+              <div class="doc-review-title">
+                <h3 id="docTitle">选择左侧文档开始评审</h3>
+                <p id="docPathHint">评论会保存到旁路数据，不会写回 Markdown。</p>
+              </div>
+              <div class="doc-version-tools">
+                <select id="docVersionSelect"></select>
+                <button class="btn btn-sm" id="btnCompareDocVersion">对比上一版</button>
+                <button class="btn btn-sm" id="btnOpenCurrentDoc">查看当前</button>
+              </div>
+            </div>
+            <div class="doc-version-banner" id="docVersionBanner"></div>
+            <div class="doc-review-status-bar" id="docReviewStatusBar"></div>
+            <div class="doc-diff-panel" id="docDiffPanel"></div>
+            <article class="doc-viewer" id="docViewer">
+              <div class="empty-state">
+                <p>暂无文档</p>
+                <p class="sub">从左侧选择 PRD、TDD 或测试用例文档后，可对模块、段落或选中文字添加评论。</p>
+              </div>
+            </article>
+          </section>
+
+          <aside class="doc-comment-panel card">
+            <div class="card-header">
+              <h3>评论追溯</h3>
+              <button class="btn btn-sm" id="btnShowOpenComments">只看未解决</button>
+            </div>
+            <div class="doc-comment-summary" id="docCommentSummary">尚未选择文档</div>
+            <div class="doc-comment-list" id="docCommentList"></div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- 评论中心 -->
+      <section class="page" id="page-comment-center">
+        <div class="card comment-center-card">
+          <div class="card-header">
+            <h3>评论管理中心</h3>
+            <button class="btn btn-sm" id="btnReloadCommentCenter">刷新</button>
+          </div>
+          <div class="comment-center-filters">
+            <div class="form-group">
+              <label>文档源</label>
+              <select id="commentCenterSource">
+                <option value="all">全部文档源</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>处理状态</label>
+              <select id="commentCenterStatus">
+                <option value="all">全部状态</option>
+                <option value="open">未解决</option>
+                <option value="resolved">已解决</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>定位状态</label>
+              <select id="commentCenterLocation">
+                <option value="all">全部定位</option>
+                <option value="current">当前定位</option>
+                <option value="remapped">已重挂载</option>
+                <option value="history">历史版本</option>
+                <option value="lost">位置失效</option>
+              </select>
+            </div>
+            <div class="form-group comment-center-search">
+              <label>关键词</label>
+              <input type="text" id="commentCenterQuery" placeholder="搜索评论、文档名或原文片段" />
+            </div>
+          </div>
+          <div class="comment-center-summary" id="commentCenterSummary"></div>
+          <div class="comment-center-list" id="commentCenterList"></div>
+        </div>
+      </section>
+
+      <!-- 文档源管理 -->
+      <section class="page" id="page-doc-sources">
+        <div class="card doc-source-manager-card">
+          <div class="card-header">
+            <h3>文档源管理</h3>
+            <button class="btn btn-primary" id="btnNewDocSource">新增文档源</button>
+          </div>
+          <div class="doc-source-help">
+            文档源用于告诉评审模块从哪里读取 Markdown。评论、版本快照和目录版本仍保存在本应用数据目录，不会写入原始文档目录。
+          </div>
+          <div class="doc-source-manager-list" id="docSourceManagerList"></div>
+        </div>
+      </section>
+
+      <!-- 评审闭环 -->
+      <section class="page" id="page-review-workflow">
+        <div class="card review-workflow-card">
+          <div class="card-header">
+            <h3>评审状态闭环</h3>
+            <button class="btn btn-sm" id="btnReloadReviewWorkflow">刷新</button>
+          </div>
+          <div class="review-workflow-filters">
+            <div class="form-group">
+              <label>文档源</label>
+              <select id="reviewWorkflowSource"><option value="all">全部文档源</option></select>
+            </div>
+            <div class="form-group">
+              <label>评审状态</label>
+              <select id="reviewWorkflowStatus"><option value="all">全部状态</option></select>
+            </div>
+            <div class="form-group review-workflow-search">
+              <label>关键词</label>
+              <input type="text" id="reviewWorkflowQuery" placeholder="搜索文档标题、路径或模块" />
+            </div>
+          </div>
+          <div class="review-workflow-summary" id="reviewWorkflowSummary"></div>
+          <div class="review-workflow-list" id="reviewWorkflowList"></div>
+        </div>
+      </section>
+
+      <!-- 设置：界面编辑 .env 里的语音与接口配置 -->
+      <section class="page" id="page-settings">
+        <div class="settings-layout">
+          <nav class="settings-toc" id="settingsToc" aria-label="设置分组"></nav>
+          <div class="settings-main">
+            <p class="settings-intro" id="settingsIntro">正在读取配置…</p>
+            <div id="settingsBody"></div>
+            <div class="settings-savebar" id="settingsSavebar" hidden>
+              <span id="settingsSavebarText">有修改尚未保存</span>
+              <button class="btn btn-sm" onclick="App.discardSettings()">放弃修改</button>
+              <button class="btn btn-sm btn-primary" id="btnSaveSettings" onclick="App.saveSettings()">保存</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 搜索结果 -->
+      <section class="page" id="page-search">
+        <div class="card">
+          <div class="card-header"><h3>搜索结果</h3></div>
+          <div id="searchResults"></div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- 模态框 -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal" id="modal">
+      <div class="modal-header">
+        <h3 id="modalTitle">标题</h3>
+        <button class="btn-icon" onclick="App.closeModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-footer" id="modalFooter"></div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- 图片预览 -->
+  <div class="lightbox" id="lightbox" onclick="App.closeLightbox()">
+    <img id="lightboxImg" />
+  </div>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>

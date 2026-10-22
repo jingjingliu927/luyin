@@ -1,0 +1,8 @@
+# FunASR 本地识别服务依赖；torch 请按自己的平台 / CUDA 版本安装（https://pytorch.org）
+funasr>=1.1
+modelscope
+torch
+torchaudio
+numpy
+scipy
+websockets
